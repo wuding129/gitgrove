@@ -85,6 +85,9 @@ gg a
 
 # 添加指定文件
 gg add src/file.js package.json
+gg add .
+# 或简写
+gg a .
 
 # 规范化提交
 gg commit
