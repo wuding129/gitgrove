@@ -3,6 +3,27 @@
 自动生成的版本历史记录。
 
 
+### [1.1.4](https://github.com/wuding129/gitgrove/compare/v1.1.3...v1.1.4) (2025-06-06)
+
+
+### 💄 样式
+
+* del .DS ([d7b3a7f](https://github.com/wuding129/gitgrove/commit/d7b3a7f0f73af1baef1feec9073ff71cddcfc67a))
+* gitignore ([0fde1a0](https://github.com/wuding129/gitgrove/commit/0fde1a00ebfb9e897a0bb1bdd10aa85d31f0fed2))
+
+
+### 🐛 问题修复
+
+* fix fixer.js ([90746eb](https://github.com/wuding129/gitgrove/commit/90746ebc8d22fc7ca4d142ef662da59bc9a2d689))
+
+
+### ✨ 新功能
+
+* branch命令 ([dff2f6a](https://github.com/wuding129/gitgrove/commit/dff2f6a2d697f684832e333407e3f68216fe3712))
+* gg增加release ([fcfa699](https://github.com/wuding129/gitgrove/commit/fcfa6997e779e95ff73b04d618963de8fe61fcf7))
+* 增加commit命令 ([7508583](https://github.com/wuding129/gitgrove/commit/7508583b9d6bb8447634fbf3b47ea7baccb8c893))
+* 简化脚本逻辑,减少项目侵入性 ([f9d0ea4](https://github.com/wuding129/gitgrove/commit/f9d0ea4f0ee933b6d8d214d47c0ebb7cfbcb78bc))
+
 ### [1.1.3](https://github.com/wuding129/gitgrove/compare/v1.1.2...v1.1.3) (2025-06-06)
 
 
