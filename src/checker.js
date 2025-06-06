@@ -138,50 +138,44 @@ function checkGitWorkflow() {
     const packageJson = fs.readJsonSync(path.join(projectRoot, 'package.json'));
     const scripts = packageJson.scripts || {};
     
-    const expectedScripts = [
-      { name: 'commit', desc: '交互式提交' },
-      { name: 'branch', desc: '创建分支' },
-      { name: 'release', desc: '版本发布' },
-      { name: 'git:setup', desc: 'Git hooks设置' },
-      { name: 'git:fix', desc: 'hooks冲突修复' }
-    ];
-
-    expectedScripts.forEach(({ name, desc }) => {
-      if (scripts[name]) {
-        console.log(chalk.green(`✅ ${name} - ${desc}`));
-      } else {
-        console.log(chalk.red(`❌ ${name} - ${desc}`));
-      }
-    });
+    // 新设计下只需要一个核心的npm script
+    const coreScript = { name: 'prepare', desc: 'lefthook安装脚本' };
+    
+    if (scripts[coreScript.name]) {
+      console.log(chalk.green(`✅ ${coreScript.name} - ${coreScript.desc}`));
+    } else {
+      console.log(chalk.yellow(`⚠️  ${coreScript.name} - ${coreScript.desc} (建议添加)`));
+    }
+    
+    console.log(chalk.gray('💡 其他功能通过全局命令提供：gg add, gg commit, gg branch, gg release'));
   } catch (error) {
     console.log(chalk.red('❌ 无法检查npm scripts'));
   }
 
-  console.log(chalk.blue('\n📁 检查辅助脚本:'));
+  console.log(chalk.blue('\n🌐 检查全局命令:'));
   
-  const scriptsDir = path.join(projectRoot, 'scripts');
-  const expectedScriptFiles = [
-    { file: 'create-branch.sh', desc: '分支创建脚本' },
-    { file: 'setup.sh', desc: '快速初始化脚本' },
-    { file: 'fix-hooks-conflict.sh', desc: 'hooks冲突修复脚本' }
-  ];
-
-  if (fs.existsSync(scriptsDir)) {
-    expectedScriptFiles.forEach(({ file, desc }) => {
-      const scriptPath = path.join(scriptsDir, file);
-      if (fs.existsSync(scriptPath)) {
-        const stats = fs.statSync(scriptPath);
-        if (stats.mode & parseInt('111', 8)) {
-          console.log(chalk.green(`✅ ${file} - ${desc}`));
-        } else {
-          console.log(chalk.yellow(`⚠️  ${file} - ${desc} (不可执行)`));
-        }
-      } else {
-        console.log(chalk.red(`❌ ${file} - ${desc}`));
-      }
+  // 检查gitgrove是否可用
+  try {
+    const { execSync } = require('child_process');
+    execSync('which gg', { stdio: 'ignore' });
+    console.log(chalk.green('✅ gg - 全局命令可用'));
+    
+    const availableCommands = [
+      'gg add (gg a) - 交互式添加文件',
+      'gg commit (gg c) - 规范化提交',
+      'gg branch (gg b) - 创建分支',
+      'gg release (gg r) - 版本发布',
+      'gg setup (gg s) - 快速初始化',
+      'gg check - 配置检查',
+      'gg fix - 修复hooks冲突'
+    ];
+    
+    availableCommands.forEach(cmd => {
+      console.log(chalk.gray(`   ${cmd}`));
     });
-  } else {
-    console.log(chalk.red('❌ scripts目录不存在'));
+  } catch (error) {
+    console.log(chalk.red('❌ gg - 全局命令不可用'));
+    console.log(chalk.yellow('💡 请安装: npm install -g gitgrove'));
   }
 
   // 总结
@@ -193,9 +187,13 @@ function checkGitWorkflow() {
   
   if (allConfigExists) {
     console.log(chalk.green('🎉 Git工作流配置完整！'));
-    console.log(chalk.blue('💡 使用 npm run commit 开始规范化提交'));
+    console.log(chalk.blue('💡 使用 gg commit 开始规范化提交'));
+    console.log(chalk.gray('   或者使用其他全局命令：'));
+    console.log(chalk.gray('   - gg add     添加文件到暂存区'));
+    console.log(chalk.gray('   - gg branch  创建规范化分支'));
+    console.log(chalk.gray('   - gg release 版本发布管理'));
   } else {
-    console.log(chalk.yellow('⚠️  配置不完整，建议运行 gitgrove 重新配置'));
+    console.log(chalk.yellow('⚠️  配置不完整，建议运行 gg 或 gitgrove 重新配置'));
   }
 }
 
