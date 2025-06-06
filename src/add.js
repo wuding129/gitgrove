@@ -248,13 +248,51 @@ class AddManager {
   }
 
   /**
+   * 显示暂存区状态
+   */
+  showStagedStatus() {
+    try {
+      const stagedOutput = execSync('git diff --cached --name-status', { encoding: 'utf8' });
+      
+      if (stagedOutput.trim()) {
+        console.log(chalk.blue('\n📦 当前暂存区文件:'));
+        const lines = stagedOutput.trim().split('\n');
+        lines.forEach(line => {
+          const [status, filename] = line.split('\t');
+          const statusText = this.getStagedStatusText(status);
+          console.log(`  ${statusText} ${filename}`);
+        });
+      }
+    } catch (error) {
+      // 忽略错误，可能没有暂存的文件
+    }
+  }
+
+  /**
+   * 获取暂存区状态文本
+   */
+  getStagedStatusText(status) {
+    const statusMap = {
+      'M': chalk.green('📝 修改'),
+      'A': chalk.green('➕ 新增'),
+      'D': chalk.red('🗑️  删除'),
+      'R': chalk.cyan('🔄 重命名'),
+      'C': chalk.cyan('📋 复制')
+    };
+
+    return statusMap[status] || chalk.gray(`${status} 未知`);
+  }
+
+  /**
    * 显示后续步骤提示
    */
   showNextSteps() {
+    this.showStagedStatus();
     console.log(chalk.blue('\n💡 后续步骤:'));
-    console.log(chalk.gray('   gg commit          # 规范化提交'));
-    console.log(chalk.gray('   git status         # 查看当前状态'));
-    console.log(chalk.gray('   git diff --cached  # 查看暂存区差异'));
+    console.log(chalk.gray('   gg commit 或 gg c    # 规范化提交'));
+    console.log(chalk.gray('   git status           # 查看当前状态'));
+    console.log(chalk.gray('   git diff --cached    # 查看暂存区差异'));
+    console.log(chalk.gray('   git reset HEAD <file> # 从暂存区移除文件'));
   }
 }
 

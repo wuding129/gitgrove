@@ -9,9 +9,6 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "test": "echo \"暂无测试\" && exit 0",
-    "prepublishOnly": "echo \"准备发布...\"",
-    "postinstall": "echo \"🎉 gitgrove 安装完成！使用 'gg' 命令来管理Git工作流\"",
     "prepare": "lefthook install"
   },
   "keywords": [
