@@ -44,10 +44,23 @@ program
     await fixHooksConflict();
   });
 
+program
+  .command('commit')
+  .alias('c')
+  .description('规范化Git提交，支持普通项目和monorepo')
+  .action(async () => {
+    const { CommitManager } = require('../src/commit');
+    const commitManager = new CommitManager();
+    await commitManager.commit();
+  });
+
 // 默认命令，如果没有指定子命令，就执行init
 program
-  .action(async (options) => {
-    await initGitWorkflow(options);
+  .action(async (options, cmd) => {
+    // 只有在没有指定任何子命令时才执行init
+    if (cmd.args.length === 0) {
+      await initGitWorkflow(options);
+    }
   });
 
 program.parse();
