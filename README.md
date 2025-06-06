@@ -93,6 +93,16 @@ gg setup
 # 或简写
 gg s
 
+# 版本发布管理
+gg release
+# 或简写
+gg r
+
+# 快速版本发布
+gg release --patch    # 补丁版本
+gg release --minor    # 次版本  
+gg release --major    # 主版本
+
 # 检查项目配置
 gg check
 
@@ -110,6 +120,7 @@ gitgrove fix
 gitgrove commit
 gitgrove branch
 gitgrove setup
+gitgrove release
 ```
 
 ### 项目初始化选项
@@ -256,7 +267,11 @@ gitgrove --help
 
 3. **版本发布**:
    ```bash
-   npm run release
+   gg release
+   # 或使用快捷选项
+   gg release --patch    # 补丁版本
+   gg release --minor    # 次版本
+   gg release --major    # 主版本
    # 自动生成CHANGELOG并创建版本标签
    ```
 
