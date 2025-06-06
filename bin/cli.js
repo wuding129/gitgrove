@@ -74,6 +74,19 @@ program
     await setupManager.setup();
   });
 
+program
+  .command('release')
+  .alias('r')
+  .description('版本发布管理')
+  .option('--major', '主版本发布 (1.0.0 -> 2.0.0)')
+  .option('--minor', '次版本发布 (1.0.0 -> 1.1.0)')
+  .option('--patch', '补丁版本发布 (1.0.0 -> 1.0.1)')
+  .action(async (options) => {
+    const { ReleaseManager } = require('../src/release');
+    const releaseManager = new ReleaseManager();
+    await releaseManager.release(options);
+  });
+
 // 默认命令，如果没有指定子命令，就执行init
 program
   .action(async (options, cmd) => {
