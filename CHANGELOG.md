@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+### [1.1.6](https://github.com/wuding129/gitgrove/compare/v1.1.5...v1.1.6) (2025-06-06)
+
+
+### 🐛 问题修复
+
+* 修复gg check检查后的提示错误 ([43be028](https://github.com/wuding129/gitgrove/commit/43be028ffc38e7eaa1c2b22872070cf6e43419f2))
+
 ### [1.1.5](https://github.com/wuding129/gitgrove/compare/v1.1.4...v1.1.5) (2025-06-06)
 
 
