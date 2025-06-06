@@ -119,10 +119,11 @@ class ReleaseManager {
     try {
       let command;
       
-      if (releaseType) {
-        command = `${this.packageManager} run release:${releaseType}`;
+      // 直接使用 npx standard-version 而不依赖 npm scripts
+      if (releaseType && releaseType !== 'auto') {
+        command = `npx standard-version --release-as ${releaseType}`;
       } else {
-        command = `${this.packageManager} run release`;
+        command = `npx standard-version`;
       }
 
       execSync(command, {
