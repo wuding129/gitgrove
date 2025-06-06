@@ -3,6 +3,19 @@
 自动生成的版本历史记录。
 
 
+### [1.1.2](https://github.com/wuding129/gitgrove/compare/v1.1.1...v1.1.2) (2025-06-06)
+
+
+### 🔧 构建/工程依赖/工具
+
+* 调整versionrc ([08d1263](https://github.com/wuding129/gitgrove/commit/08d1263cea0dc12f3b4da8678a3daef06d1a60bf))
+
+
+### 🐛 问题修复
+
+* gg -v 版本号不对 ([61dcf51](https://github.com/wuding129/gitgrove/commit/61dcf5191efdf70b21ff812e575078d53719a7b5))
+* 修复release commit message ([4cc9189](https://github.com/wuding129/gitgrove/commit/4cc9189ac5569d7d17839e73e957173ec1027111))
+
 ### [1.1.1](https://github.com/wuding129/gitgrove/compare/v1.1.0...v1.1.1) (2025-06-06)
 
 ## 1.1.0 (2025-06-06)
