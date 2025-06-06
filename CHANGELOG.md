@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+### [1.1.3](https://github.com/wuding129/gitgrove/compare/v1.1.2...v1.1.3) (2025-06-06)
+
+
+### 📝 文档
+
+* readme ([56c6882](https://github.com/wuding129/gitgrove/commit/56c68823b2f6b9f363be70f684efbc873fffa762))
+
 ### [1.1.2](https://github.com/wuding129/gitgrove/compare/v1.1.1...v1.1.2) (2025-06-06)
 
 
