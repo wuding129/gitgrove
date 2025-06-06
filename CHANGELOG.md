@@ -3,6 +3,26 @@
 自动生成的版本历史记录。
 
 
+### [1.1.5](https://github.com/wuding129/gitgrove/compare/v1.1.4...v1.1.5) (2025-06-06)
+
+
+### 📝 文档
+
+* 更新readme ([fde11cc](https://github.com/wuding129/gitgrove/commit/fde11cc53bd2c67ce68ce1041050ce0543ea636a))
+
+
+### ✨ 新功能
+
+* 增加add命令 ([cc04071](https://github.com/wuding129/gitgrove/commit/cc040718aae9bd4952533590d37eadb2d7fc29ab))
+* 添加gg add命令，支持交互式文件添加 ([982b5aa](https://github.com/wuding129/gitgrove/commit/982b5aa9719825dbead19ae1ab31d7a21153a2ed))
+
+
+### 🐛 问题修复
+
+* 修复gg release命令直接调用standard-version ([4f4b61a](https://github.com/wuding129/gitgrove/commit/4f4b61aaa29c1518c69790ef7eec61aa0c4282df))
+* 修复release检测问题 ([046018d](https://github.com/wuding129/gitgrove/commit/046018d078ead5ee89114ec9f4ee4f12cfd7b88f))
+* 调整npm scripts ([bc15276](https://github.com/wuding129/gitgrove/commit/bc15276f58b878384e374ed29af96678829b8eaa))
+
 ### [1.1.4](https://github.com/wuding129/gitgrove/compare/v1.1.3...v1.1.4) (2025-06-06)
 
 
