@@ -578,38 +578,23 @@ pre-commit:
                         this.packageManager === 'yarn' ? 'yarn run' : 'npm run';
 
       const gitScripts = {
-        // 提交相关
-        "commit": "cz",
-        "commit:quick": "git commit",
-        "commit:simple": "echo '请选择提交类型: feat(新功能) fix(修复) docs(文档) style(格式) refactor(重构) perf(性能) test(测试) chore(工具)' && read -p '输入: ' type && read -p '描述: ' desc && git commit -m \"$type: $desc\"",
+        // Git hooks准备（必须保留，npm install时自动安装hooks）
+        "prepare": "lefthook install",
         
-        // 版本发布
+        // 版本发布（标准的npm操作，保留在项目中）
         "release": "standard-version",
         "release:major": "standard-version --release-as major",
         "release:minor": "standard-version --release-as minor", 
         "release:patch": "standard-version --release-as patch",
         
-        // Git hooks准备
-        "prepare": "lefthook install",
-        "postinstall": "lefthook install",
-        
-        // 分支管理
-        "branch": "./scripts/create-branch.sh",
-        "branch:feature": "echo '创建功能分支: git checkout -b feature_[模块]_[描述]'",
-        "branch:hotfix": "echo '创建热修复分支: git checkout -b hotfix_v[版本]_[描述]'",
-        "branch:bugfix": "echo '创建问题修复分支: git checkout -b bugfix_[描述]'",
-        
-        // Git配置和设置
-        "git:setup": "lefthook install",
-        "git:fix": "./scripts/fix-hooks-conflict.sh",
+        // 团队协作脚本（项目特定的初始化流程）
         "setup": "./scripts/setup.sh",
         
-        // 测试和验证
-        "test:commit": "echo '测试无字符限制的中文提交信息: 这是一个非常长的中文提交信息用来测试是否还有字符数量限制现在应该可以自由输入任意长度的中文描述了包括各种符号和表情符号🎉✨🚀'",
-        "lint:commit": "commitlint --edit",
+        // Git hooks管理（备用，防止全局命令不可用）
+        "git:setup": "lefthook install",
         
-        // 工作流帮助
-        "help:git": `echo '\\n🌟 Git规范化工作流帮助:\\n\\n📝 提交代码: ${runCommand} commit\\n🌿 创建分支: ${runCommand} branch\\n🚀 发布版本: ${runCommand} release\\n⚙️  初始化设置: ${runCommand} setup\\n\\n更多信息请查看 GIT_SETUP_GUIDE.md'`
+        // 备用命令（当全局命令不可用时使用）
+        "commit": "echo '💡 建议使用全局命令: gg commit 或 gg c' && cz"
       };
 
       // 只添加不存在的script，避免覆盖用户现有的脚本
@@ -1154,20 +1139,19 @@ echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
   showSuccessMessage() {
     console.log(chalk.green('\n🎉 Git规范化工作流配置完成！\n'));
 
-    const runCommand = this.getRunCommand();
+    console.log(chalk.blue('🌟 推荐使用全局命令 (任意目录可用):\n'));
+    
+    console.log(chalk.yellow('  📝 智能提交:'));
+    console.log(`     ${chalk.bold('gg commit')} 或 ${chalk.bold('gg c')}         # 智能检测提交配置，支持monorepo`);
+    console.log(`     支持检测项目级和全局commitizen配置\n`);
+    
+    console.log(chalk.yellow('  🌿 智能分支:'));
+    console.log(`     ${chalk.bold('gg branch')} 或 ${chalk.bold('gg b')}         # 交互式创建规范分支，自动验证`);
+    console.log(`     支持feature、hotfix、bugfix等类型\n`);
 
-    console.log(chalk.blue('📚 新增的脚本命令:\n'));
+    const runCommand = this.getRunCommand();
     
-    console.log(chalk.yellow('  📝 提交相关:'));
-    console.log(`     ${runCommand} commit              # 交互式规范提交（无字符限制）`);
-    console.log(`     ${runCommand} commit:quick        # 快速提交`);
-    console.log(`     ${runCommand} commit:simple       # 简单交互式提交\n`);
-    
-    console.log(chalk.yellow('  🌿 分支管理:'));
-    console.log(`     ${runCommand} branch              # 交互式创建规范分支`);
-    console.log(`     ${runCommand} branch:feature      # 功能分支创建提示`);
-    console.log(`     ${runCommand} branch:hotfix       # 热修复分支创建提示`);
-    console.log(`     ${runCommand} branch:bugfix       # 问题修复分支创建提示\n`);
+    console.log(chalk.blue('📦 项目脚本命令:\n'));
     
     console.log(chalk.yellow('  🚀 版本发布:'));
     console.log(`     ${runCommand} release             # 自动版本发布`);
@@ -1175,11 +1159,12 @@ echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
     console.log(`     ${runCommand} release:minor       # 次版本发布`);
     console.log(`     ${runCommand} release:patch       # 补丁版本发布\n`);
     
-    console.log(chalk.yellow('  ⚙️  配置和帮助:'));
+    console.log(chalk.yellow('  ⚙️  团队协作:'));
     console.log(`     ${runCommand} setup               # 团队成员快速初始化`);
-    console.log(`     ${runCommand} git:setup           # Git hooks配置`);
-    console.log(`     ${runCommand} git:fix             # 修复Git hooks冲突`);
-    console.log(`     ${runCommand} help:git            # 显示Git工作流帮助\n`);
+    console.log(`     ${runCommand} git:setup           # Git hooks配置\n`);
+    
+    console.log(chalk.yellow('  🔧 备用命令:'));
+    console.log(`     ${runCommand} commit              # 备用提交命令（推荐使用 gg commit）\n`);
 
     console.log(chalk.blue('💡 分支命名规范:'));
     console.log('   feature_[模块]_[描述]  (例: feature_user_login)');
@@ -1189,15 +1174,18 @@ echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
     console.log(chalk.blue('🎯 提交类型:'));
     console.log('   feat, fix, docs, style, refactor, perf, test, chore, build, ci\n');
     
-    console.log(chalk.green('✨ 特性说明:'));
+    console.log(chalk.green('✨ 核心特性:'));
+    console.log('   🌟 全局命令优先 - 在任意Git仓库中使用');
+    console.log('   🏗️  智能Monorepo支持 - 自动检测项目结构');
+    console.log('   🎯 智能配置检测 - 项目级优先，全局兜底');
     console.log('   ✅ 完全中文化界面');
     console.log('   ✅ 无字符长度限制');
-    console.log('   ✅ 跳过确认步骤');
     console.log('   ✅ 分支命名规范验证');
     console.log('   ✅ 主分支保护机制');
     console.log('   ✅ 使用lefthook替代husky（更稳定）\n');
     
     console.log(chalk.green('开始愉快的开发吧！ 🚀\n'));
+    console.log(chalk.cyan('💡 提示: 全局命令 gg commit 和 gg branch 现在可以在任意Git项目中使用'));
     console.log(chalk.yellow('💾 备份文件: package.json.backup (如有问题可恢复)'));
   }
 }

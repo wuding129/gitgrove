@@ -54,6 +54,16 @@ program
     await commitManager.commit();
   });
 
+program
+  .command('branch')
+  .alias('b')
+  .description('交互式创建规范化分支')
+  .action(async () => {
+    const { BranchManager } = require('../src/branch');
+    const branchManager = new BranchManager();
+    await branchManager.createBranch();
+  });
+
 // 默认命令，如果没有指定子命令，就执行init
 program
   .action(async (options, cmd) => {
