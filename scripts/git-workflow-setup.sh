@@ -505,7 +505,7 @@ module.exports = {
   compareUrlFormat: '{{host}}/{{owner}}/{{repository}}/compare/{{previousTag}}...{{currentTag}}',
   issueUrlFormat: '{{host}}/{{owner}}/{{repository}}/issues/{{id}}',
   userUrlFormat: '{{host}}/{{user}}',
-  releaseCommitMessageFormat: 'chore(release): {{currentTag}}',
+  releaseCommitMessageFormat: 'chore: release v{{currentTag}}',
   issuePrefixes: ['#'],
   header: '# 更新日志\n\n自动生成的版本历史记录。\n\n',
   skip: {
@@ -513,16 +513,6 @@ module.exports = {
     changelog: false,
     commit: false,
     tag: false
-  },
-  scripts: {
-    prebump: 'echo "准备发布版本..."',
-    postbump: 'echo "版本已更新"',
-    prechangelog: 'echo "生成更新日志..."',
-    postchangelog: 'echo "更新日志已生成"',
-    precommit: 'echo "提交版本更新..."',
-    postcommit: 'echo "版本提交完成"',
-    pretag: 'echo "创建版本标签..."',
-    posttag: 'echo "版本标签已创建"'
   }
 };
 EOF
