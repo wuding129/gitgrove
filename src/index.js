@@ -578,13 +578,7 @@ pre-commit:
 
       const gitScripts = {
         // Git hooks准备（必须保留，npm install时自动安装hooks）
-        "prepare": "lefthook install",
-        
-        // 版本发布（标准的npm操作，保留在项目中）
-        "release": "standard-version",
-        "release:major": "standard-version --release-as major",
-        "release:minor": "standard-version --release-as minor", 
-        "release:patch": "standard-version --release-as patch"
+        "prepare": "lefthook install"
       };
 
       // 只添加不存在的script，避免覆盖用户现有的脚本
@@ -868,7 +862,8 @@ pre-commit:
     console.log('   ✅ 使用lefthook替代husky（更稳定）\n');
     
     console.log(chalk.green('开始愉快的开发吧！ 🚀\n'));
-    console.log(chalk.cyan('💡 提示: 全局命令现在可以在任意Git项目中使用，无需scripts文件夹'));
+    console.log(chalk.cyan('💡 极简设计: 项目中只保留一个prepare script，所有功能通过gg命令使用'));
+    console.log(chalk.cyan('💡 版本发布: 使用 gg release 而非npm scripts，支持全局使用'));
     console.log(chalk.yellow('💾 备份文件: package.json.backup (如有问题可恢复)'));
   }
 }

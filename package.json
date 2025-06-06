@@ -12,10 +12,6 @@
     "test": "echo \"暂无测试\" && exit 0",
     "prepublishOnly": "echo \"准备发布...\"",
     "postinstall": "echo \"🎉 gitgrove 安装完成！使用 'gg' 命令来管理Git工作流\"",
-    "release": "standard-version",
-    "release:major": "standard-version --release-as major",
-    "release:minor": "standard-version --release-as minor",
-    "release:patch": "standard-version --release-as patch",
     "prepare": "lefthook install"
   },
   "keywords": [

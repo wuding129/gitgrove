@@ -163,18 +163,28 @@ gitgrove --help
 
 ### npm scripts
 
-只保留必要的npm scripts：
+只保留最核心的npm script：
 
 ```json
 {
   "scripts": {
-    "prepare": "lefthook install",
-    "release": "standard-version",
-    "release:major": "standard-version --release-as major",
-    "release:minor": "standard-version --release-as minor", 
-    "release:patch": "standard-version --release-as patch"
+    "prepare": "lefthook install"
   }
 }
+```
+
+### 🚀 版本发布现在更简单
+
+所有版本发布功能都通过全局命令提供，无需项目中的npm scripts：
+
+```bash
+# 交互式版本发布
+gg release
+
+# 快速版本发布
+gg release --patch    # 补丁版本 (1.0.0 -> 1.0.1)
+gg release --minor    # 次版本 (1.0.0 -> 1.1.0)  
+gg release --major    # 主版本 (1.0.0 -> 2.0.0)
 ```
 
 ### 全局命令优先
@@ -272,7 +282,6 @@ gitgrove --help
    gg release --patch    # 补丁版本
    gg release --minor    # 次版本
    gg release --major    # 主版本
-   # 自动生成CHANGELOG并创建版本标签
    ```
 
 4. **团队成员初始化**:
