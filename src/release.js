@@ -79,12 +79,19 @@ class ReleaseManager {
 
     try {
       const packageJson = fs.readJsonSync(packageJsonPath);
+      
+      // 检查是否有 standard-version 依赖（在 devDependencies 中）
       const hasStandardVersion = packageJson.devDependencies && 
         packageJson.devDependencies['standard-version'];
-      const hasReleaseScript = packageJson.scripts && 
-        packageJson.scripts['release'];
       
-      return hasStandardVersion && hasReleaseScript;
+      // 检查是否有版本发布配置文件
+      const hasVersionrcConfig = fs.existsSync(path.join(this.projectRoot, '.versionrc.js')) ||
+        fs.existsSync(path.join(this.projectRoot, '.versionrc.json')) ||
+        fs.existsSync(path.join(this.projectRoot, '.versionrc'));
+      
+      // 只要有 standard-version 依赖就认为配置正确
+      // 因为我们现在通过全局命令使用，不再依赖 npm scripts
+      return hasStandardVersion;
     } catch (error) {
       return false;
     }
