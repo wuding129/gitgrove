@@ -64,6 +64,16 @@ program
     await branchManager.createBranch();
   });
 
+program
+  .command('setup')
+  .alias('s')
+  .description('团队成员快速初始化（安装依赖、配置hooks）')
+  .action(async () => {
+    const { SetupManager } = require('../src/setup');
+    const setupManager = new SetupManager();
+    await setupManager.setup();
+  });
+
 // 默认命令，如果没有指定子命令，就执行init
 program
   .action(async (options, cmd) => {

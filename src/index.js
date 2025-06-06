@@ -96,7 +96,6 @@ class GitWorkflowInitializer {
     await this.installDependencies();
     await this.createConfigFiles();
     await this.updatePackageJson();
-    await this.createScripts();
     await this.updateGitignore();
     await this.initializeGitHooks();
 
@@ -585,16 +584,7 @@ pre-commit:
         "release": "standard-version",
         "release:major": "standard-version --release-as major",
         "release:minor": "standard-version --release-as minor", 
-        "release:patch": "standard-version --release-as patch",
-        
-        // 团队协作脚本（项目特定的初始化流程）
-        "setup": "./scripts/setup.sh",
-        
-        // Git hooks管理（备用，防止全局命令不可用）
-        "git:setup": "lefthook install",
-        
-        // 备用命令（当全局命令不可用时使用）
-        "commit": "echo '💡 建议使用全局命令: gg commit 或 gg c' && cz"
+        "release:patch": "standard-version --release-as patch"
       };
 
       // 只添加不存在的script，避免覆盖用户现有的脚本
@@ -619,312 +609,7 @@ pre-commit:
     }
   }
 
-  async createScripts() {
-    const spinner = ora('📄 创建辅助脚本...').start();
 
-    try {
-      const scriptsDir = path.join(this.projectRoot, 'scripts');
-      await fs.ensureDir(scriptsDir);
-
-      await this.createBranchScript();
-      await this.createSetupScript();
-      await this.createFixScript();
-
-      spinner.succeed('✅ 辅助脚本创建完成');
-    } catch (error) {
-      spinner.fail('❌ 辅助脚本创建失败');
-      throw error;
-    }
-  }
-
-  async createBranchScript() {
-    const script = `#!/bin/bash
-
-# 交互式分支创建脚本
-# 支持feature/hotfix/bugfix三种类型
-
-set -e
-
-# 颜色定义
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-BLUE='\\033[0;34m'
-NC='\\033[0m'
-
-echo -e "\${BLUE}🌿 创建规范化分支\${NC}"
-echo "===================="
-
-# 选择分支类型
-echo "请选择分支类型:"
-echo "1) feature - 新功能开发"
-echo "2) hotfix  - 紧急修复"
-echo "3) bugfix  - 问题修复"
-echo ""
-
-read -p "请输入选择 (1-3): " choice
-
-case $choice in
-    1)
-        branch_type="feature"
-        echo -e "\${GREEN}📝 创建功能分支\${NC}"
-        read -p "请输入模块名称 (如: user, payment): " module
-        read -p "请输入功能描述 (如: login, checkout): " description
-        branch_name="feature_\${module}_\${description}"
-        ;;
-    2)
-        branch_type="hotfix"
-        echo -e "\${RED}🔥 创建热修复分支\${NC}"
-        read -p "请输入版本号 (如: 1.0.3): " version
-        read -p "请输入修复描述 (如: login_fix): " description
-        branch_name="hotfix_v\${version}_\${description}"
-        ;;
-    3)
-        branch_type="bugfix"
-        echo -e "\${YELLOW}🐛 创建问题修复分支\${NC}"
-        read -p "请输入问题描述 (如: scroll_error): " description
-        branch_name="bugfix_\${description}"
-        ;;
-    *)
-        echo -e "\${RED}❌ 无效选择\${NC}"
-        exit 1
-        ;;
-esac
-
-# 检查分支名称格式
-if [[ ! $branch_name =~ ^[a-z_0-9.]+$ ]]; then
-    echo -e "\${RED}❌ 分支名称只能包含小写字母、数字、下划线和点\${NC}"
-    exit 1
-fi
-
-# 创建并切换到新分支
-echo ""
-echo -e "\${BLUE}🚀 创建分支: \${branch_name}\${NC}"
-
-if git checkout -b "$branch_name"; then
-    echo -e "\${GREEN}✅ 分支创建成功！\${NC}"
-    echo ""
-    echo -e "\${BLUE}📝 下一步:\${NC}"
-    echo "1. 开始开发你的功能"
-    
-    # 检测包管理工具
-    if [ -f "pnpm-lock.yaml" ]; then
-        MANAGER="pnpm"
-    elif [ -f "yarn.lock" ]; then
-        MANAGER="yarn"
-    else
-        MANAGER="npm"
-    fi
-    
-    echo "2. 使用 '$MANAGER run commit' 进行规范化提交"
-    echo "3. 推送分支: git push -u origin $branch_name"
-else
-    echo -e "\${RED}❌ 分支创建失败\${NC}"
-    exit 1
-fi`;
-
-    await fs.writeFile(
-      path.join(this.projectRoot, 'scripts', 'create-branch.sh'),
-      script
-    );
-
-    // 设置执行权限
-    await fs.chmod(path.join(this.projectRoot, 'scripts', 'create-branch.sh'), 0o755);
-  }
-
-  async createSetupScript() {
-    const script = `#!/bin/bash
-
-# 团队成员快速初始化脚本
-# 用于新团队成员快速配置Git工作流环境
-
-set -e
-
-echo "🚀 Git工作流快速初始化"
-echo "======================"
-
-# 颜色定义
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-BLUE='\\033[0;34m'
-NC='\\033[0m'
-
-# 检查是否在项目根目录
-if [ ! -f "package.json" ]; then
-    echo -e "\${RED}❌ 错误: 请在项目根目录运行此脚本\${NC}"
-    exit 1
-fi
-
-# 检查是否已配置Git工作流
-if [ ! -f "lefthook.yml" ] || [ ! -f "commitlint.config.js" ]; then
-    echo -e "\${RED}❌ 错误: 项目未配置Git工作流\${NC}"
-    echo -e "\${YELLOW}请先运行: gitgrove\${NC}"
-    exit 1
-fi
-
-echo -e "\${BLUE}📦 安装项目依赖...\${NC}"
-
-# 检测包管理工具并安装依赖
-if [ -f "pnpm-lock.yaml" ]; then
-    echo -e "\${GREEN}检测到pnpm配置，使用pnpm安装...\${NC}"
-    pnpm install
-    MANAGER="pnpm"
-elif [ -f "yarn.lock" ]; then
-    echo -e "\${GREEN}检测到yarn配置，使用yarn安装...\${NC}"
-    yarn install
-    MANAGER="yarn"
-else
-    echo -e "\${GREEN}使用npm安装...\${NC}"
-    npm install
-    MANAGER="npm"
-fi
-
-echo -e "\${BLUE}🔧 初始化Git hooks...\${NC}"
-
-# 初始化lefthook
-if command -v lefthook &> /dev/null; then
-    lefthook install
-    echo -e "\${GREEN}✅ Git hooks初始化完成\${NC}"
-else
-    echo -e "\${YELLOW}⚠️  lefthook未找到，尝试通过\${MANAGER}安装...\${NC}"
-    if [ "$MANAGER" = "npm" ]; then
-        npm run prepare
-    elif [ "$MANAGER" = "pnpm" ]; then
-        pnpm run prepare
-    elif [ "$MANAGER" = "yarn" ]; then
-        yarn run prepare
-    fi
-fi
-
-echo ""
-echo -e "\${GREEN}🎉 Git工作流初始化完成！\${NC}"
-echo ""
-echo -e "\${BLUE}📚 常用命令 (\${MANAGER}):\${NC}"
-echo "  📝 提交代码: \${MANAGER} run commit"
-echo "  🌿 创建分支: \${MANAGER} run branch"
-echo "  🚀 发布版本: \${MANAGER} run release"
-echo "  ❓ 显示帮助: \${MANAGER} run help:git"
-echo ""
-echo -e "\${GREEN}开始愉快的开发吧！ 🚀\${NC}"`;
-
-    await fs.writeFile(
-      path.join(this.projectRoot, 'scripts', 'setup.sh'),
-      script
-    );
-
-    await fs.chmod(path.join(this.projectRoot, 'scripts', 'setup.sh'), 0o755);
-  }
-
-  async createFixScript() {
-    const script = `#!/bin/bash
-
-# Git hooks冲突修复脚本
-# 用于修复已有项目中的Git hooks冲突问题
-
-set -e
-
-echo "🔧 Git Hooks冲突修复脚本"
-echo "========================="
-
-# 颜色定义
-RED='\\033[0;31m'
-GREEN='\\033[0;32m'
-YELLOW='\\033[1;33m'
-BLUE='\\033[0;34m'
-NC='\\033[0m'
-
-# 检查是否在Git仓库中
-if [ ! -d ".git" ]; then
-    echo -e "\${RED}❌ 错误: 不在Git仓库中\${NC}"
-    exit 1
-fi
-
-echo -e "\${BLUE}🧹 清理冲突的Git hooks...\${NC}"
-
-# 备份现有hooks
-if [ -d ".git/hooks" ] && [ "$(ls -A .git/hooks 2>/dev/null)" ]; then
-    backup_dir=".git/hooks-backup-$(date +%Y%m%d_%H%M%S)"
-    echo -e "\${YELLOW}📦 备份现有hooks到: \${backup_dir}\${NC}"
-    mkdir -p "$backup_dir"
-    cp -r .git/hooks/* "$backup_dir/" 2>/dev/null || true
-fi
-
-# 清理可能冲突的hooks文件
-echo -e "\${YELLOW}🗑️  清理冲突文件...\${NC}"
-rm -f .git/hooks/pre-commit.old
-rm -f .git/hooks/commit-msg.old
-rm -f .git/hooks/pre-push.old
-rm -f .git/hooks/pre-commit.sample
-rm -f .git/hooks/commit-msg.sample
-rm -f .git/hooks/pre-push.sample
-
-# 清理husky相关文件
-if [ -d ".husky" ]; then
-    echo -e "\${YELLOW}🗑️  清理旧的husky配置...\${NC}"
-    rm -rf .husky
-fi
-
-# 重新安装lefthook
-echo -e "\${BLUE}🚀 重新安装lefthook hooks...\${NC}"
-
-# 检测包管理工具
-if [ -f "pnpm-lock.yaml" ]; then
-    MANAGER="pnpm"
-elif [ -f "yarn.lock" ]; then
-    MANAGER="yarn"
-else
-    MANAGER="npm"
-fi
-
-# 尝试不同方式安装lefthook
-if command -v lefthook &> /dev/null; then
-    echo -e "\${GREEN}使用全局lefthook安装...\${NC}"
-    lefthook install
-elif command -v npx &> /dev/null; then
-    echo -e "\${GREEN}使用npx lefthook安装...\${NC}"
-    npx lefthook install
-else
-    echo -e "\${YELLOW}使用\${MANAGER}脚本安装...\${NC}"
-    if [ "$MANAGER" = "npm" ]; then
-        npm run git:setup
-    elif [ "$MANAGER" = "pnpm" ]; then
-        pnpm run git:setup
-    elif [ "$MANAGER" = "yarn" ]; then
-        yarn run git:setup
-    fi
-fi
-
-# 验证安装结果
-if [ -f ".git/hooks/pre-commit" ] && [ -f ".git/hooks/commit-msg" ]; then
-    echo -e "\${GREEN}✅ Lefthook hooks安装成功\${NC}"
-    echo ""
-    echo -e "\${BLUE}📋 已安装的hooks:\${NC}"
-    ls -la .git/hooks/ | grep -E "(pre-commit|commit-msg|pre-push)" | sed 's/^/  /' || echo "  检测到hooks文件"
-else
-    echo -e "\${YELLOW}⚠️  Lefthook hooks可能未完全安装\${NC}"
-    echo -e "\${BLUE}💡 建议手动运行:\${NC}"
-    echo "  \${MANAGER} run git:setup"
-    echo "  或检查lefthook.yml配置文件"
-fi
-
-echo ""
-echo -e "\${GREEN}🎉 Git hooks冲突修复完成！\${NC}"
-echo ""
-echo -e "\${BLUE}📝 下一步:\${NC}"
-echo "1. 测试提交: \${MANAGER} run test:commit"
-echo "2. 正常使用: \${MANAGER} run commit"
-echo "3. 创建分支: \${MANAGER} run branch"
-echo ""
-echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
-
-    await fs.writeFile(
-      path.join(this.projectRoot, 'scripts', 'fix-hooks-conflict.sh'),
-      script
-    );
-
-    await fs.chmod(path.join(this.projectRoot, 'scripts', 'fix-hooks-conflict.sh'), 0o755);
-  }
 
   async updateGitignore() {
     const spinner = ora('📝 更新.gitignore...').start();
@@ -1149,22 +834,19 @@ echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
     console.log(`     ${chalk.bold('gg branch')} 或 ${chalk.bold('gg b')}         # 交互式创建规范分支，自动验证`);
     console.log(`     支持feature、hotfix、bugfix等类型\n`);
 
+    console.log(chalk.yellow('  🚀 团队协作:'));
+    console.log(`     ${chalk.bold('gg setup')} 或 ${chalk.bold('gg s')}          # 团队成员快速初始化（依赖+hooks）`);
+    console.log(`     ${chalk.bold('gg fix')}                    # 修复Git hooks冲突问题\n`);
+
     const runCommand = this.getRunCommand();
     
     console.log(chalk.blue('📦 项目脚本命令:\n'));
     
-    console.log(chalk.yellow('  🚀 版本发布:'));
+    console.log(chalk.yellow('  🏷️  版本发布:'));
     console.log(`     ${runCommand} release             # 自动版本发布`);
     console.log(`     ${runCommand} release:major       # 主版本发布`);
     console.log(`     ${runCommand} release:minor       # 次版本发布`);
     console.log(`     ${runCommand} release:patch       # 补丁版本发布\n`);
-    
-    console.log(chalk.yellow('  ⚙️  团队协作:'));
-    console.log(`     ${runCommand} setup               # 团队成员快速初始化`);
-    console.log(`     ${runCommand} git:setup           # Git hooks配置\n`);
-    
-    console.log(chalk.yellow('  🔧 备用命令:'));
-    console.log(`     ${runCommand} commit              # 备用提交命令（推荐使用 gg commit）\n`);
 
     console.log(chalk.blue('💡 分支命名规范:'));
     console.log('   feature_[模块]_[描述]  (例: feature_user_login)');
@@ -1178,6 +860,7 @@ echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
     console.log('   🌟 全局命令优先 - 在任意Git仓库中使用');
     console.log('   🏗️  智能Monorepo支持 - 自动检测项目结构');
     console.log('   🎯 智能配置检测 - 项目级优先，全局兜底');
+    console.log('   📦 极简项目配置 - 只保留必要的npm scripts');
     console.log('   ✅ 完全中文化界面');
     console.log('   ✅ 无字符长度限制');
     console.log('   ✅ 分支命名规范验证');
@@ -1185,7 +868,7 @@ echo -e "\${YELLOW}💾 原hooks已备份到: \${backup_dir:-无备份}\${NC}"`;
     console.log('   ✅ 使用lefthook替代husky（更稳定）\n');
     
     console.log(chalk.green('开始愉快的开发吧！ 🚀\n'));
-    console.log(chalk.cyan('💡 提示: 全局命令 gg commit 和 gg branch 现在可以在任意Git项目中使用'));
+    console.log(chalk.cyan('💡 提示: 全局命令现在可以在任意Git项目中使用，无需scripts文件夹'));
     console.log(chalk.yellow('💾 备份文件: package.json.backup (如有问题可恢复)'));
   }
 }

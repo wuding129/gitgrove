@@ -45,6 +45,8 @@
 
 ## ✨ 特性
 
+- ✅ **全局命令支持** - 安装后可在任意Git项目中使用`gg`命令
+- ✅ **极简项目配置** - 项目中只保留必要的配置文件和npm scripts
 - ✅ **完全中文化界面** - 友好的中文交互体验
 - ✅ **无字符长度限制** - 支持任意长度的中文提交信息
 - ✅ **智能包管理器检测** - 自动检测并支持npm/pnpm/yarn
@@ -53,37 +55,64 @@
 - ✅ **使用lefthook替代husky** - 更轻量级和稳定的Git hooks管理
 - ✅ **自动化版本发布** - 基于Conventional Commits的语义化版本管理
 
-## 🚀 安装
+## 🚀 快速开始
+
+### 全局安装
 
 ```bash
-# 全局安装
 npm install -g gitgrove
-
-# 或使用pnpm
-pnpm add -g gitgrove
-
-# 或使用yarn
-yarn global add gitgrove
 ```
 
-## 📝 使用方法
+### 初始化项目
 
-### 初始化Git工作流
+```bash
+# 在任意Git项目中运行
+gitgrove
 
-在任意Node.js项目根目录下运行：
+# 或使用简写
+gg
+```
+
+### 全局命令
+
+安装后可在任意Git项目中使用：
+
+```bash
+# 规范化提交
+gg commit
+# 或简写
+gg c
+
+# 创建规范化分支
+gg branch
+# 或简写  
+gg b
+
+# 团队成员快速初始化
+gg setup
+# 或简写
+gg s
+
+# 检查项目配置
+gg check
+
+# 修复hooks冲突
+gg fix
+```
+
+### 传统命令（仍然支持）
 
 ```bash
 # 完整命令
 gitgrove init
-
-# 或使用简写
-gg init
-
-# 或直接运行（默认执行init命令）
-gitgrove
+gitgrove check  
+gitgrove fix
+gitgrove commit
+gitgrove branch
+gitgrove setup
 ```
 
-### 命令选项
+### 项目初始化选项
 
 ```bash
 # 强制覆盖现有配置
@@ -113,21 +142,7 @@ gitgrove --help
 
 ## 🔧 配置内容
 
-工具将自动创建以下配置文件和脚本：
-
-### 为什么选择项目级配置？
-
-很多开发者可能会疑问：既然 `gitgrove` 是全局安装的工具，为什么还要在每个项目中添加这么多配置和脚本？
-
-**项目级配置的优势：**
-
-1. **团队协作一致性** - 确保所有团队成员使用相同的工具版本和配置
-2. **CI/CD 集成** - 持续集成环境可以直接使用项目中的工具，无需额外配置
-3. **项目定制化** - 不同项目可以有不同的提交规范、分支策略和版本发布方式
-4. **环境隔离** - 避免全局工具版本冲突，提高项目稳定性
-5. **新成员上手** - 新团队成员只需运行 `npm install` 即可获得完整的开发环境
-
-**这种设计模式在现代前端工具链中已成为标准**，如 `create-react-app`、`create-vue` 等都采用类似的方式。
+工具将自动创建以下配置文件：
 
 ### 配置文件
 - `commitlint.config.js` - 提交信息验证规则（中文化，无字符限制）
@@ -135,20 +150,44 @@ gitgrove --help
 - `lefthook.yml` - Git hooks配置（分支验证、提交验证）
 - `.versionrc.js` - 版本发布配置（中文CHANGELOG）
 
-### 辅助脚本
-- `scripts/create-branch.sh` - 交互式分支创建脚本
-- `scripts/setup.sh` - 团队成员快速初始化脚本
-- `scripts/fix-hooks-conflict.sh` - Git hooks冲突修复脚本
-
 ### npm scripts
 
-自动添加以下npm脚本命令：
+只保留必要的npm scripts：
 
 ```json
 {
   "scripts": {
-    // 提交相关
-    "commit": "cz",
+    "prepare": "lefthook install",
+    "release": "standard-version",
+    "release:major": "standard-version --release-as major",
+    "release:minor": "standard-version --release-as minor", 
+    "release:patch": "standard-version --release-as patch"
+  }
+}
+```
+
+### 全局命令优先
+
+**新的设计理念**：大部分功能通过全局命令提供，项目中只保留必要的配置。
+
+- ✅ **极简项目配置** - 项目中只保留必要的配置文件和npm scripts
+- ✅ **全局命令支持** - 主要功能通过`gg`命令全局可用
+- ✅ **无scripts文件夹** - 不再在项目中创建scripts文件夹
+
+### ⚡ 为什么选择全局命令 + 最小配置？
+
+**新设计的优势：**
+
+1. **减少项目体积** - 不再创建scripts文件夹，项目更加轻量
+2. **全局可用** - 安装一次，所有Git项目都能使用
+3. **保持简洁** - 项目中只保留配置文件，没有冗余脚本
+4. **易于维护** - 全局工具统一更新，无需每个项目单独维护脚本
+5. **团队一致性** - 确保所有团队成员使用相同版本的工具
+
+**项目级配置仍然重要：**
+- 配置文件确保团队使用相同的规范
+- npm scripts提供标准的版本发布流程
+- lefthook hooks确保代码质量
     "commit:quick": "git commit",
     "commit:simple": "简单交互式提交",
     
@@ -203,13 +242,30 @@ gitgrove --help
 
 1. **创建功能分支**:
    ```bash
-   npm run branch
+   gg branch
+   # 或使用简写：gg b
    # 选择 1) feature，然后输入模块名和功能描述
    ```
 
 2. **规范化提交**:
    ```bash
-   npm run commit
+   gg commit
+   # 或使用简写：gg c
+   # 使用交互式界面选择提交类型并输入描述
+   ```
+
+3. **版本发布**:
+   ```bash
+   npm run release
+   # 自动生成CHANGELOG并创建版本标签
+   ```
+
+4. **团队成员初始化**:
+   ```bash
+   gg setup
+   # 或使用简写：gg s
+   # 安装依赖并初始化Git hooks
+   ```
    # 使用交互式界面选择提交类型并输入描述
    ```
 
@@ -250,11 +306,11 @@ gitgrove --help
 如果遇到Git hooks冲突问题，可以使用内置的修复工具：
 
 ```bash
-# 使用工具修复
-gitgrove fix
+# 使用全局命令修复
+gg fix
 
-# 或使用npm script
-npm run git:fix
+# 或使用传统命令
+gitgrove fix
 ```
 
 ### 依赖问题
@@ -271,12 +327,20 @@ npm install --save-dev @commitlint/cli @commitlint/config-conventional commitize
 
 ## 🤝 团队协作
 
-新团队成员可以使用快速初始化脚本：
+新团队成员可以使用快速初始化：
 
 ```bash
-# 安装依赖并初始化Git hooks
-npm run setup
+# 使用全局命令快速初始化
+gg setup
+
+# 或使用简写
+gg s
 ```
+
+该命令会：
+- 安装项目依赖
+- 初始化Git hooks
+- 配置Git用户信息（如果需要）
 
 ## 📦 依赖包
 
