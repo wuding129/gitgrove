@@ -1,0 +1,82 @@
+{
+  "name": "gitgrove",
+  "version": "1.0.0",
+  "description": "智能Git工作流助手，一键初始化Git规范化工作流，让代码仓库管理井然有序",
+  "main": "src/index.js",
+  "bin": {
+    "gitgrove": "./bin/cli.js",
+    "gg": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "echo \"暂无测试\" && exit 0",
+    "prepublishOnly": "echo \"准备发布...\"",
+    "postinstall": "echo \"🎉 gitgrove 安装完成！使用 'gitgrove' 或 'gg' 命令来初始化项目\"",
+    "commit": "cz",
+    "commit:quick": "git commit",
+    "commit:simple": "echo '请选择提交类型: feat(新功能) fix(修复) docs(文档) style(格式) refactor(重构) perf(性能) test(测试) chore(工具)' && read -p '输入: ' type && read -p '描述: ' desc && git commit -m \"$type: $desc\"",
+    "release": "standard-version",
+    "release:major": "standard-version --release-as major",
+    "release:minor": "standard-version --release-as minor",
+    "release:patch": "standard-version --release-as patch",
+    "prepare": "lefthook install",
+    "branch": "./scripts/create-branch.sh",
+    "branch:feature": "echo '创建功能分支: git checkout -b feature_[模块]_[描述]'",
+    "branch:hotfix": "echo '创建热修复分支: git checkout -b hotfix_v[版本]_[描述]'",
+    "branch:bugfix": "echo '创建问题修复分支: git checkout -b bugfix_[描述]'",
+    "git:setup": "lefthook install",
+    "git:fix": "./scripts/fix-hooks-conflict.sh",
+    "setup": "./scripts/setup.sh",
+    "setup:complete": "./scripts/git-workflow-setup.sh",
+    "test:commit": "echo '测试无字符限制的中文提交信息: 这是一个非常长的中文提交信息用来测试是否还有字符数量限制现在应该可以自由输入任意长度的中文描述了包括各种符号和表情符号🎉✨🚀'",
+    "lint:commit": "commitlint --edit",
+    "help:git": "echo '\\n🌟 Git规范化工作流帮助:\\n\\n📝 提交代码: pnpm run commit\\n🌿 创建分支: pnpm run branch\\n🚀 发布版本: pnpm run release\\n⚙️  初始化设置: pnpm run setup\\n\\n更多信息请查看 GIT_SETUP_GUIDE.md'"
+  },
+  "keywords": [
+    "git",
+    "workflow",
+    "commitlint",
+    "lefthook",
+    "git-hooks",
+    "conventional-commits",
+    "chinese",
+    "cli",
+    "tool",
+    "productivity"
+  ],
+  "author": "wuding129@163.com",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "child_process": "^1.0.2",
+    "commander": "^11.1.0",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^8.2.6",
+    "ora": "^5.4.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wuding129/gitgrove.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wuding129/gitgrove/issues"
+  },
+  "homepage": "https://github.com/wuding129/gitgrove#readme",
+  "preferGlobal": true,
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "commitizen": "^4.3.1",
+    "cz-customizable": "^7.4.0",
+    "lefthook": "^1.11.13",
+    "standard-version": "^9.5.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-customizable"
+    }
+  }
+}

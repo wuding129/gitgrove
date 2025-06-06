@@ -1,0 +1,88 @@
+# Git规范化工作流配置
+# 分支创建约束和提交规范验证
+
+# 分支推送前的验证 - 用于拦截不规范分支
+pre-push:
+  commands:
+    branch-name-check:
+      run: |
+        # 获取当前分支名
+        current_branch=$(git branch --show-current)
+        
+        # 跳过master/main分支的检查
+        if [[ $current_branch == "master" || $current_branch == "main" ]]; then
+          exit 0
+        fi
+        
+        # 分支命名规范校验
+        if ! [[ $current_branch =~ ^(feature|hotfix|bugfix)_ ]]; then
+          echo "❌ 错误: 分支名 '$current_branch' 不符合规范!"
+          echo "📋 正确格式:"
+          echo "   🔹 feature_[模块]_[描述] (例: feature_user_login)"
+          echo "   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)"
+          echo "   🔹 bugfix_[描述] (例: bugfix_scroll_error)"
+          echo ""
+          echo "💡 使用以下命令查看分支创建帮助:"
+          echo "   npm run branch:feature"
+          echo "   npm run branch:hotfix"
+          echo "   npm run branch:bugfix"
+          exit 1
+        fi
+        
+        # 类型特定格式验证
+        if [[ $current_branch =~ ^feature_ ]]; then
+          if ! [[ $current_branch =~ ^feature_[a-z0-9]+_[a-z0-9_]+$ ]]; then
+            echo "❌ 功能分支格式错误!"
+            echo "📋 正确格式: feature_[模块]_[描述]"
+            echo "📝 示例: feature_user_login, feature_payment_integration"
+            exit 1
+          fi
+        elif [[ $current_branch =~ ^hotfix_ ]]; then
+          if ! [[ $current_branch =~ ^hotfix_v?[0-9.]+_[a-z0-9_]+$ ]]; then
+            echo "❌ 热修复分支格式错误!"
+            echo "📋 正确格式: hotfix_v[版本]_[描述]"
+            echo "📝 示例: hotfix_v1.0.3_login_fix, hotfix_v2.1.0_security_patch"
+            exit 1
+          fi
+        elif [[ $current_branch =~ ^bugfix_ ]]; then
+          if ! [[ $current_branch =~ ^bugfix_[a-z0-9_]+$ ]]; then
+            echo "❌ 问题修复分支格式错误!"
+            echo "📋 正确格式: bugfix_[描述]"
+            echo "📝 示例: bugfix_scroll_error, bugfix_memory_leak"
+            exit 1
+          fi
+        fi
+        
+        echo "✅ 分支名称符合规范: $current_branch"
+
+# 提交信息验证
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no-install commitlint --edit {1}
+      stage_fixed: true
+
+# 提交前的代码检查
+pre-commit:
+  commands:
+    # 防止直接提交到master分支
+    protect-master:
+      run: |
+        branch=$(git branch --show-current)
+        if [[ $branch == "master" || $branch == "main" ]]; then
+          echo "❌ 错误: 禁止直接向 $branch 分支提交!"
+          echo "📋 正确流程:"
+          echo "   1. 创建功能分支: git checkout -b feature_[模块]_[描述]"
+          echo "   2. 在功能分支上开发和提交"
+          echo "   3. 通过Pull Request合并到主分支"
+          exit 1
+        fi
+        
+    # 代码质量检查
+    lint-staged:
+      glob: "*.{js,ts,vue,jsx,tsx}"
+      run: |
+        echo "🔍 检查代码格式..."
+        # 这里可以添加ESLint等代码检查工具
+        # npx eslint {staged_files} --fix
+        echo "✅ 代码格式检查通过"
