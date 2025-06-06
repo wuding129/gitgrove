@@ -1,4 +1,14 @@
-# gitgrove 更新日志
+# 更新日志
+
+自动生成的版本历史记录。
+
+
+## 1.1.0 (2025-06-06)
+
+
+### ✨ 新功能
+
+* 初始化核心功能 ([ade4123](https://github.com/wuding129/gitgrove/commit/ade41234d643abc7faf4deed6c1382a23d90859b))
 
 ## [1.0.0] - 2024-06-06
 
