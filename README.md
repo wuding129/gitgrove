@@ -78,6 +78,14 @@ gg
 安装后可在任意Git项目中使用：
 
 ```bash
+# 添加文件到暂存区
+gg add
+# 或简写
+gg a
+
+# 添加指定文件
+gg add src/file.js package.json
+
 # 规范化提交
 gg commit
 # 或简写
@@ -268,14 +276,27 @@ gg release --major    # 主版本 (1.0.0 -> 2.0.0)
    # 选择 1) feature，然后输入模块名和功能描述
    ```
 
-2. **规范化提交**:
+2. **添加文件到暂存区**:
+   ```bash
+   gg add
+   # 或使用简写：gg a
+   # 交互式选择要添加的文件
+   
+   # 直接添加指定文件
+   gg add src/file.js package.json
+   
+   # 添加所有文件
+   gg add .
+   ```
+
+3. **规范化提交**:
    ```bash
    gg commit
    # 或使用简写：gg c
    # 使用交互式界面选择提交类型并输入描述
    ```
 
-3. **版本发布**:
+4. **版本发布**:
    ```bash
    gg release
    # 或使用快捷选项
@@ -284,19 +305,11 @@ gg release --major    # 主版本 (1.0.0 -> 2.0.0)
    gg release --major    # 主版本
    ```
 
-4. **团队成员初始化**:
+5. **团队成员初始化**:
    ```bash
    gg setup
    # 或使用简写：gg s
    # 安装依赖并初始化Git hooks
-   ```
-   # 使用交互式界面选择提交类型并输入描述
-   ```
-
-3. **版本发布**:
-   ```bash
-   npm run release
-   # 自动生成CHANGELOG并创建版本标签
    ```
 
 ## 💡 设计理念

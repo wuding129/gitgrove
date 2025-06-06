@@ -22,10 +22,8 @@ pre-push:
           echo "   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)"
           echo "   🔹 bugfix_[描述] (例: bugfix_scroll_error)"
           echo ""
-          echo "💡 使用以下命令查看分支创建帮助:"
-          echo "   npm run branch:feature"
-          echo "   npm run branch:hotfix"
-          echo "   npm run branch:bugfix"
+          echo "💡 使用以下命令创建规范分支:"
+          echo "   gg branch 或 gg b (交互式创建分支)"
           exit 1
         fi
         

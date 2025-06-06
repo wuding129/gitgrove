@@ -45,6 +45,24 @@ program
   });
 
 program
+  .command('add')
+  .alias('a')
+  .description('交互式添加文件到暂存区')
+  .argument('[files...]', '要添加的文件路径')
+  .action(async (files) => {
+    const { AddManager } = require('../src/add');
+    const addManager = new AddManager();
+    
+    if (files && files.length > 0) {
+      // 直接添加指定文件
+      await addManager.addDirect(files);
+    } else {
+      // 交互式添加
+      await addManager.interactiveAdd();
+    }
+  });
+
+program
   .command('commit')
   .alias('c')
   .description('规范化Git提交，支持普通项目和monorepo')
