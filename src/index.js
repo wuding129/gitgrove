@@ -15,6 +15,19 @@ class GitWorkflowInitializer {
     this.gitRoot = gitRoot;
     this.projectRoot = packageJsonDir || this.currentDir;
     
+    // 检测是否有wbox.config.json文件，如果有则默认严格使用npm
+    this.hasWboxConfig = fs.existsSync(path.join(this.projectRoot, 'wbox.config.json'));
+    if (this.hasWboxConfig && !options.onlyNpm && !options.onlyPnpm && !options.onlyYarn) {
+      console.log(chalk.yellow('💡 检测到wbox.config.json，将严格限制使用npm包管理器'));
+      this.options.onlyNpm = true;
+    }
+    
+    // 确定严格模式的包管理器
+    this.strictPackageManager = null;
+    if (this.options.onlyNpm) this.strictPackageManager = 'npm';
+    if (this.options.onlyPnpm) this.strictPackageManager = 'pnpm';
+    if (this.options.onlyYarn) this.strictPackageManager = 'yarn';
+    
     this.packageManager = this.detectPackageManager();
   }
 
@@ -52,6 +65,9 @@ class GitWorkflowInitializer {
   }
 
   detectPackageManager() {
+    // 如果指定了严格模式，强制使用指定的包管理器
+    if (this.strictPackageManager) return this.strictPackageManager;
+    
     if (this.options.npm) return 'npm';
     if (this.options.pnpm) return 'pnpm';
     if (this.options.yarn) return 'yarn';
@@ -86,11 +102,16 @@ class GitWorkflowInitializer {
     }
 
     // 选择包管理器
-    if (!this.options.npm && !this.options.pnpm && !this.options.yarn) {
+    const hasStrictMode = this.options.onlyNpm || this.options.onlyPnpm || this.options.onlyYarn;
+    if (!this.options.npm && !this.options.pnpm && !this.options.yarn && !hasStrictMode) {
       this.packageManager = await this.selectPackageManager();
     }
 
-    console.log(chalk.green(`✅ 已选择包管理器: ${this.packageManager}`));
+    if (hasStrictMode) {
+      console.log(chalk.green(`✅ 已强制使用包管理器: ${this.packageManager} (严格限制模式)`));
+    } else {
+      console.log(chalk.green(`✅ 已选择包管理器: ${this.packageManager}`));
+    }
 
     // 开始初始化
     await this.installDependencies();
@@ -578,6 +599,11 @@ try {
         "prepare": "lefthook install"
       };
 
+      // 如果指定了严格模式，添加包管理器限制
+      if (this.strictPackageManager) {
+        gitScripts["preinstall"] = `npx only-allow ${this.strictPackageManager}`;
+      }
+
       // 只添加不存在的script，避免覆盖用户现有的脚本
       Object.keys(gitScripts).forEach(key => {
         if (!packageJson.scripts[key]) {
@@ -592,6 +618,10 @@ try {
       };
 
       await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
+      
+      if (this.strictPackageManager) {
+        spinner.info(`📦 已添加包管理器限制: 只允许使用 ${this.strictPackageManager}`);
+      }
       
       spinner.succeed('✅ package.json更新完成');
     } catch (error) {
@@ -815,6 +845,16 @@ try {
   showSuccessMessage() {
     console.log(chalk.green('\n🎉 Git规范化工作流配置完成！\n'));
 
+    // 如果启用了包管理器限制，显示相关信息
+    if (this.options.onlyNpm) {
+      console.log(chalk.cyan('🔒 包管理器限制已启用:\n'));
+      console.log(chalk.yellow('  ✅ 已添加preinstall脚本限制只能使用npm'));
+      if (this.hasWboxConfig) {
+        console.log(chalk.yellow('  📄 检测到wbox.config.json，自动启用npm限制'));
+      }
+      console.log(chalk.yellow('  ⚠️  使用pnpm或yarn安装依赖将被阻止\n'));
+    }
+
     console.log(chalk.blue('🌟 推荐使用全局命令 (任意目录可用):\n'));
     
     console.log(chalk.yellow('  📝 智能提交:'));
@@ -856,7 +896,14 @@ try {
     console.log('   ✅ 无字符长度限制');
     console.log('   ✅ 分支命名规范验证');
     console.log('   ✅ 主分支保护机制');
-    console.log('   ✅ 使用lefthook替代husky（更稳定）\n');
+    console.log('   ✅ 使用lefthook替代husky（更稳定）');
+    
+    // 显示包管理器限制信息
+    if (this.strictPackageManager) {
+      console.log(`   🔒 包管理器限制 - 只允许使用 ${this.strictPackageManager}`);
+    }
+    
+    console.log('');
     
     console.log(chalk.green('开始愉快的开发吧！ 🚀\n'));
     console.log(chalk.cyan('💡 极简设计: 项目中只保留一个prepare script，所有功能通过gg命令使用'));

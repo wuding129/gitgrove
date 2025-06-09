@@ -19,6 +19,9 @@ program
   .option('--npm', '使用npm作为包管理器')
   .option('--pnpm', '使用pnpm作为包管理器')
   .option('--yarn', '使用yarn作为包管理器')
+  .option('--only-npm', '严格限制只能使用npm包管理器')
+  .option('--only-pnpm', '严格限制只能使用pnpm包管理器')
+  .option('--only-yarn', '严格限制只能使用yarn包管理器')
   .action(async (options) => {
     try {
       await initGitWorkflow(options);

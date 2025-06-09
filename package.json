@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node src/index.js",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "preinstall": "npx only-allow pnpm"
   },
   "keywords": [
     "git",

@@ -50,6 +50,8 @@
 - ✅ **完全中文化界面** - 友好的中文交互体验
 - ✅ **无字符长度限制** - 支持任意长度的中文提交信息
 - ✅ **智能包管理器检测** - 自动检测并支持npm/pnpm/yarn
+- ✅ **包管理器限制** - 支持强制项目只使用特定包管理器，防止混用
+- ✅ **wbox.config.json自动检测** - 检测到该文件时自动启用npm限制
 - ✅ **分支命名规范验证** - 自动验证分支名称格式
 - ✅ **主分支保护机制** - 防止直接向主分支提交
 - ✅ **使用lefthook替代husky** - 更轻量级和稳定的Git hooks管理
@@ -152,6 +154,14 @@ gitgrove init --skip-install
 gitgrove init --npm    # 使用npm
 gitgrove init --pnpm   # 使用pnpm
 gitgrove init --yarn   # 使用yarn
+
+# 包管理器限制选项（强制项目只能使用指定的包管理器）
+gitgrove init --only-npm    # 限制只能使用npm
+gitgrove init --only-pnpm   # 限制只能使用pnpm
+gitgrove init --only-yarn   # 限制只能使用yarn
+
+# 组合使用示例
+gitgrove init --only-npm --force    # 强制覆盖并限制使用npm
 ```
 
 ### 提交命令选项
@@ -182,6 +192,74 @@ gitgrove fix
 # 显示帮助信息
 gitgrove --help
 ```
+
+## 📦 包管理器限制功能
+
+为了确保团队开发环境的一致性，`gitgrove` 支持包管理器限制功能，防止在同一项目中混用不同的包管理器。
+
+### 🔒 包管理器限制选项
+
+使用 `--only-*` 选项可以为项目添加包管理器限制：
+
+```bash
+# 限制只能使用npm
+gitgrove init --only-npm
+
+# 限制只能使用pnpm  
+gitgrove init --only-pnpm
+
+# 限制只能使用yarn
+gitgrove init --only-yarn
+```
+
+### 🏗️ 自动检测wbox.config.json
+
+如果项目根目录下存在 `wbox.config.json` 文件，工具会自动启用npm限制，无需手动指定：
+
+```bash
+# 如果存在wbox.config.json，自动启用--only-npm
+gitgrove init  # 等同于 gitgrove init --only-npm
+```
+
+### ⚙️ 技术实现
+
+启用包管理器限制后，工具会在 `package.json` 中添加 `preinstall` 脚本：
+
+```json
+{
+  "scripts": {
+    "preinstall": "npx only-allow npm",
+    "prepare": "lefthook install"
+  }
+}
+```
+
+这个脚本会：
+- ✅ 在每次安装依赖前检查使用的包管理器
+- ❌ 如果使用了不被允许的包管理器，阻止安装并提示错误
+- 📝 确保团队成员只能使用指定的包管理器
+
+### 🎯 使用场景
+
+**适用于以下场景：**
+
+1. **团队协作项目** - 确保所有成员使用相同的包管理器
+2. **CI/CD环境** - 避免在不同环境中使用不同包管理器导致的问题
+3. **企业项目** - 统一技术栈和开发环境
+4. **开源项目** - 为贡献者提供明确的开发环境要求
+
+**示例错误提示：**
+```bash
+$ yarn install
+Use "npm" for installation in this project
+```
+
+### 💡 最佳实践
+
+1. **在项目初始化时就确定包管理器**
+2. **在README中说明项目使用的包管理器**
+3. **CI/CD脚本中也使用相同的包管理器**
+4. **对于wbox项目，默认使用npm以保持一致性**
 
 ## 🔧 配置内容
 
@@ -362,6 +440,20 @@ gg release --major    # 主版本 (1.0.0 -> 2.0.0)
 
 ## 🛠️ 故障排除
 
+### 包管理器限制问题
+
+如果在安装依赖时遇到包管理器限制错误：
+
+```bash
+# 错误示例
+Use "npm" for installation in this project
+```
+
+**解决方案：**
+1. 使用项目指定的包管理器（如npm）
+2. 检查项目根目录是否有 `wbox.config.json`（会自动启用npm限制）
+3. 查看 `package.json` 中的 `preinstall` 脚本了解限制详情
+
 ### Git Hooks冲突
 
 如果遇到Git hooks冲突问题，可以使用内置的修复工具：
@@ -413,6 +505,9 @@ gg s
 - `cz-customizable` - 自定义提交配置
 - `lefthook` - Git hooks管理
 - `standard-version` - 自动版本发布
+
+**包管理器限制功能依赖：**
+- `only-allow` - 包管理器限制工具（通过npx使用，无需安装）
 
 ## 📄 许可证
 
