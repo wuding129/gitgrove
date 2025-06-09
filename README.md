@@ -94,6 +94,11 @@ gg commit
 # 或简写
 gg c
 
+# 跳过Git hooks限制进行提交
+gg commit --no-hooks
+# 或简写
+gg c --no-hooks
+
 # 创建规范化分支
 gg branch
 # 或简写  
@@ -148,6 +153,22 @@ gitgrove init --npm    # 使用npm
 gitgrove init --pnpm   # 使用pnpm
 gitgrove init --yarn   # 使用yarn
 ```
+
+### 提交命令选项
+
+```bash
+# 规范化提交
+gg commit
+
+# 跳过所有Git hooks限制进行提交（用于紧急情况或特殊需求）
+gg commit --no-hooks
+```
+
+**`--no-hooks` 选项说明：**
+- 绕过所有Git hooks验证（包括pre-commit、commit-msg等）
+- 允许直接提交到受保护的分支（如main/master）
+- 适用于紧急修复、项目维护等特殊场景
+- 仍然提供规范化的提交消息界面，确保提交质量
 
 ### 其他命令
 

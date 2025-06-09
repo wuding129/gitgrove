@@ -295,7 +295,7 @@ class BranchManager {
         console.log('1. 开始开发你的功能');
         
         const packageManager = this.detectPackageManager();
-        console.log(`2. 使用 'gg commit' 或 '${packageManager} run commit' 进行规范化提交`);
+        console.log(`2. 使用 'gg commit/gg c' 或 '${packageManager} run commit' 进行规范化提交`);
         console.log(`3. 推送分支: git push -u origin ${branchName}`);
 
       } catch (error) {

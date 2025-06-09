@@ -9,7 +9,8 @@ class CommitManager {
     this.currentDir = process.cwd();
     this.gitRoot = this.findGitRoot();
     this.packageJsonDir = this.findNearestPackageJson();
-    this.noHooks = options.noHooks || false;
+    // Commander.js 将 --no-hooks 转换为 hooks: false
+    this.noHooks = options.hooks === false || options.noHooks === true;
   }
 
   /**
@@ -205,42 +206,18 @@ class CommitManager {
           }
         }
         
-        // 如果启用了--no-hooks，需要特殊处理
-        if (this.noHooks) {
-          // 对于Commitizen，我们需要直接使用git commit命令而不是通过cz
-          console.log(chalk.yellow('⚠️  --no-hooks模式下将使用内置提交界面'));
-          process.chdir(originalCwd);
-          this.useBuiltinCommit().then(resolve).catch(reject);
-          return;
-        }
-        
         console.log(chalk.gray(`💡 在目录 ${executionDir} 中执行: ${command} ${args.join(' ')}`));
-        
-        if (this.noHooks) {
-          console.log(chalk.yellow('⚠️  已跳过Git hooks验证'));
-        }
         
         // Windows下需要特殊处理spawn命令
         const isWindows = process.platform === 'win32';
         const spawnOptions = {
           stdio: 'inherit',
-          cwd: executionDir,
-          env: {
-            ...process.env,
-            // 传递--no-verify选项给Git
-            ...(this.noHooks ? { HUSKY: '0', GIT_PARAMS: '--no-verify' } : {})
-          }
+          cwd: executionDir
         };
         
         // Windows下需要设置shell: true
         if (isWindows) {
           spawnOptions.shell = true;
-        }
-        
-        // 如果启用了--no-hooks，修改git命令
-        if (this.noHooks) {
-          // 设置环境变量来禁用Git hooks
-          spawnOptions.env.GIT_COMMIT_HOOKS = 'false';
         }
         
         const child = spawn(command, args, spawnOptions);
@@ -442,6 +419,13 @@ class CommitManager {
       execSync('git status --short', { stdio: 'inherit', cwd: this.gitRoot });
       console.log('');      // 检查Commitizen配置
       const commitizenStatus = this.checkCommitizen();
+      
+      // 如果启用了--no-hooks，直接使用内置提交界面，跳过Commitizen
+      if (this.noHooks) {
+        console.log(chalk.yellow('⚠️  --no-hooks模式：跳过Commitizen，使用内置提交界面'));
+        await this.useBuiltinCommit();
+        return;
+      }
       
       if (commitizenStatus.hasConfig) {
         console.log(chalk.green('✅ 检测到Commitizen配置，使用项目配置进行提交'));
