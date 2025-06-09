@@ -3,6 +3,27 @@
 自动生成的版本历史记录。
 
 
+### [1.1.7](https://github.com/wuding129/gitgrove/compare/v1.1.5...v1.1.7) (2025-06-09)
+
+
+### 🔧 构建/工程依赖/工具
+
+* release v1.1.6 ([e2b542f](https://github.com/wuding129/gitgrove/commit/e2b542f2a43f26ee756007b6f96e5d84de2a2f67))
+
+
+### 📝 文档
+
+* ddd ([e8b28c8](https://github.com/wuding129/gitgrove/commit/e8b28c89fc0d516a50f4b9dfe2b6f30433fbf5d0))
+
+
+### 🐛 问题修复
+
+* 通过外置脚本解决windows兼容问题 ([82404c7](https://github.com/wuding129/gitgrove/commit/82404c7f14b32fa77c52b7b722769d25d809b50c))
+* 修复gg check检查后的提示错误 ([43be028](https://github.com/wuding129/gitgrove/commit/43be028ffc38e7eaa1c2b22872070cf6e43419f2))
+* 修复lefthook windows bug ([acc60b0](https://github.com/wuding129/gitgrove/commit/acc60b0e93e337beec55e3ada61898ea6ebbeed7))
+* 修复windows ([cbfdcce](https://github.com/wuding129/gitgrove/commit/cbfdcceda7d3a1c706fe40fcd4ee37e0abfe8296))
+* 修复windows报错 ([23cba43](https://github.com/wuding129/gitgrove/commit/23cba43995f3bae039d8f60927f4823452c2ac88))
+
 ### [1.1.6](https://github.com/wuding129/gitgrove/compare/v1.1.5...v1.1.6) (2025-06-06)
 
 
