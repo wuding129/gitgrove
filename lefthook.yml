@@ -5,32 +5,7 @@
 pre-push:
   commands:
     branch-name-check:
-      run: |
-        # 获取当前分支名
-        current_branch=$(git branch --show-current 2>/dev/null || git rev-parse --abbrev-ref HEAD)
-        
-        # 跳过master/main分支的检查
-        if [ "$current_branch" = "master" ] || [ "$current_branch" = "main" ]; then
-          exit 0
-        fi
-        
-        # 分支命名规范校验 - 使用POSIX兼容的字符串匹配
-        case "$current_branch" in
-          feature_*|hotfix_*|bugfix_*)
-            echo "✅ 分支名称符合规范: $current_branch"
-            ;;
-          *)
-            echo "❌ 错误: 分支名 '$current_branch' 不符合规范!"
-            echo "📋 正确格式:"
-            echo "   🔹 feature_[模块]_[描述] (例: feature_user_login)"
-            echo "   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)"
-            echo "   🔹 bugfix_[描述] (例: bugfix_scroll_error)"
-            echo ""
-            echo "💡 使用以下命令创建规范分支:"
-            echo "   gg branch 或 gg b (交互式创建分支)"
-            exit 1
-            ;;
-        esac
+      run: node scripts/branch-name-check.js
 
 # 提交信息验证
 commit-msg:
@@ -41,7 +16,8 @@ commit-msg:
 
 # 提交前的代码检查
 pre-commit:
-  commands:    # 防止直接提交到master分支 (Windows兼容版本)
+  commands:
+    # 防止直接提交到master分支 (Windows兼容版本)
     protect-master:
       run: node scripts/protect-master.js
         

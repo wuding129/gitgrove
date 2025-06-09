@@ -402,7 +402,6 @@ class GitWorkflowInitializer {
       config
     );
   }
-
   async createLefthookConfig() {
     const config = `# Git规范化工作流配置
 # 分支创建约束和提交规范验证
@@ -411,96 +410,21 @@ class GitWorkflowInitializer {
 pre-push:
   commands:
     branch-name-check:
-      run: |
-        # 获取当前分支名
-        current_branch=$(git branch --show-current)
-        
-        # 跳过master/main分支的检查
-        if [[ $current_branch == "master" || $current_branch == "main" ]]; then
-          exit 0
-        fi
-        
-        # 分支命名规范校验
-        if ! [[ $current_branch =~ ^(feature|hotfix|bugfix)_ ]]; then
-          echo "❌ 错误: 分支名 '$current_branch' 不符合规范!"
-          echo "📋 正确格式:"
-          echo "   🔹 feature_[模块]_[描述] (例: feature_user_login)"
-          echo "   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)"
-          echo "   🔹 bugfix_[描述] (例: bugfix_scroll_error)"
-          echo ""
-          echo "💡 使用以下命令查看分支创建帮助:"
-          echo "   npm run branch:feature"
-          echo "   npm run branch:hotfix"
-          echo "   npm run branch:bugfix"
-          exit 1
-        fi
-        
-        # 类型特定格式验证
-        if [[ $current_branch =~ ^feature_ ]]; then
-          if ! [[ $current_branch =~ ^feature_[a-z0-9]+_[a-z0-9_]+$ ]]; then
-            echo "❌ 功能分支格式错误!"
-            echo "📋 正确格式: feature_[模块]_[描述]"
-            "📝 示例: feature_user_login, feature_payment_integration"
-            exit 1
-          fi
-        elif [[ $current_branch =~ ^hotfix_ ]]; then
-          if ! [[ $current_branch =~ ^hotfix_v?[0-9.]+_[a-z0-9_]+$ ]]; then
-            echo "❌ 热修复分支格式错误!"
-            echo "📋 正确格式: hotfix_v[版本]_[描述]"
-            echo "📝 示例: hotfix_v1.0.3_login_fix, hotfix_v2.1.0_security_patch"
-            exit 1
-          fi
-        elif [[ $current_branch =~ ^bugfix_ ]]; then
-          if ! [[ $current_branch =~ ^bugfix_[a-z0-9_]+$ ]]; then
-            echo "❌ 问题修复分支格式错误!"
-            echo "📋 正确格式: bugfix_[描述]"
-            echo "📝 示例: bugfix_scroll_error, bugfix_memory_leak"
-            exit 1
-          fi
-        fi
-        
-        echo "✅ 分支名称符合规范: $current_branch"
+      run: node -e "const { execSync } = require('child_process'); try { const currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim(); if (currentBranch === 'master' || currentBranch === 'main') { process.exit(0); } const validPatterns = [/^feature_.+/, /^hotfix_.+/, /^bugfix_.+/]; const isValidBranch = validPatterns.some(pattern => pattern.test(currentBranch)); if (isValidBranch) { console.log('✅ 分支名称符合规范: ' + currentBranch); process.exit(0); } else { console.log('❌ 错误: 分支名 \\'' + currentBranch + '\\' 不符合规范!'); console.log('📋 正确格式:'); console.log('   🔹 feature_[模块]_[描述] (例: feature_user_login)'); console.log('   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)'); console.log('   🔹 bugfix_[描述] (例: bugfix_scroll_error)'); console.log(''); console.log('💡 使用以下命令创建规范分支:'); console.log('   gg branch 或 gg b (交互式创建分支)'); process.exit(1); } } catch (error) { console.log('⚠️  无法获取分支信息，跳过检查'); process.exit(0); }"
 
 # 提交信息验证
 commit-msg:
   commands:
     commitlint:
-      run: |
-        # 在monorepo场景下，查找包含commitlint的目录
-        if command -v commitlint &> /dev/null; then
-          commitlint --edit {1}
-        elif [ -f "package.json" ] && grep -q "@commitlint/cli" package.json; then
-          npx commitlint --edit {1}
-        else
-          # 查找包含commitlint依赖的子目录
-          for dir in */; do
-            if [ -f "$dir/package.json" ] && grep -q "@commitlint/cli" "$dir/package.json"; then
-              echo "🔍 在 $dir 中找到 commitlint，正在验证提交信息..."
-              # 使用管道来传递提交信息，避免文件路径问题
-              cat "{1}" | (cd "$dir" && npx commitlint)
-              exit $?
-            fi
-          done
-          # 如果都找不到，尝试全局安装
-          npx commitlint --edit {1}
-        fi
+      run: npx --no-install commitlint --edit {1}
       stage_fixed: true
 
 # 提交前的代码检查
 pre-commit:
   commands:
-    # 防止直接提交到master分支
+    # 防止直接提交到master分支 (Windows兼容版本)
     protect-master:
-      run: |
-        branch=$(git branch --show-current)
-        if [[ $branch == "master" || $branch == "main" ]]; then
-          echo "❌ 错误: 禁止直接向 $branch 分支提交!"
-          echo "📋 正确流程:"
-          echo "   1. 创建功能分支: git checkout -b feature_[模块]_[描述]"
-          echo "   2. 在功能分支上开发和提交"
-          echo "   3. 通过Pull Request合并到主分支"
-          exit 1
-        fi
+      run: node -e "const { execSync } = require('child_process'); try { const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim(); if (branch === 'master' || branch === 'main') { console.log('❌ 错误: 禁止直接向主分支提交!'); console.log('📋 正确流程:'); console.log('   1. 创建功能分支: git checkout -b feature_[模块]_[描述]'); console.log('   2. 在功能分支上开发和提交'); console.log('   3. 通过Pull Request合并到主分支'); process.exit(1); } } catch (error) { console.log('⚠️  无法获取分支信息，跳过检查'); process.exit(0); }"
         
     # 代码质量检查
     lint-staged:
