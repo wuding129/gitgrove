@@ -66,9 +66,10 @@ program
   .command('commit')
   .alias('c')
   .description('规范化Git提交，支持普通项目和monorepo')
-  .action(async () => {
+  .option('--no-hooks', '跳过所有Git hooks限制')
+  .action(async (options) => {
     const { CommitManager } = require('../src/commit');
-    const commitManager = new CommitManager();
+    const commitManager = new CommitManager(options);
     await commitManager.commit();
   });
 

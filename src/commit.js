@@ -5,10 +5,11 @@ const inquirer = require('inquirer');
 const { execSync, spawn } = require('child_process');
 
 class CommitManager {
-  constructor() {
+  constructor(options = {}) {
     this.currentDir = process.cwd();
     this.gitRoot = this.findGitRoot();
     this.packageJsonDir = this.findNearestPackageJson();
+    this.noHooks = options.noHooks || false;
   }
 
   /**
@@ -204,18 +205,42 @@ class CommitManager {
           }
         }
         
+        // 如果启用了--no-hooks，需要特殊处理
+        if (this.noHooks) {
+          // 对于Commitizen，我们需要直接使用git commit命令而不是通过cz
+          console.log(chalk.yellow('⚠️  --no-hooks模式下将使用内置提交界面'));
+          process.chdir(originalCwd);
+          this.useBuiltinCommit().then(resolve).catch(reject);
+          return;
+        }
+        
         console.log(chalk.gray(`💡 在目录 ${executionDir} 中执行: ${command} ${args.join(' ')}`));
+        
+        if (this.noHooks) {
+          console.log(chalk.yellow('⚠️  已跳过Git hooks验证'));
+        }
         
         // Windows下需要特殊处理spawn命令
         const isWindows = process.platform === 'win32';
         const spawnOptions = {
           stdio: 'inherit',
-          cwd: executionDir
+          cwd: executionDir,
+          env: {
+            ...process.env,
+            // 传递--no-verify选项给Git
+            ...(this.noHooks ? { HUSKY: '0', GIT_PARAMS: '--no-verify' } : {})
+          }
         };
         
         // Windows下需要设置shell: true
         if (isWindows) {
           spawnOptions.shell = true;
+        }
+        
+        // 如果启用了--no-hooks，修改git命令
+        if (this.noHooks) {
+          // 设置环境变量来禁用Git hooks
+          spawnOptions.env.GIT_COMMIT_HOOKS = 'false';
         }
         
         const child = spawn(command, args, spawnOptions);
@@ -337,11 +362,15 @@ class CommitManager {
         if (isWindows) {
           // Windows下使用双引号包裹，内部双引号转义为\"
           const escapedMessage = fullMessage.replace(/"/g, '\\"');
-          commitCommand = `git commit -m "${escapedMessage}"`;
+          commitCommand = `git commit${this.noHooks ? ' --no-verify' : ''} -m "${escapedMessage}"`;
         } else {
           // Unix系统下的处理
           const escapedMessage = fullMessage.replace(/"/g, '\\"');
-          commitCommand = `git commit -m "${escapedMessage}"`;
+          commitCommand = `git commit${this.noHooks ? ' --no-verify' : ''} -m "${escapedMessage}"`;
+        }
+        
+        if (this.noHooks) {
+          console.log(chalk.yellow('⚠️  已跳过Git hooks验证'));
         }
         
         execSync(commitCommand, {
@@ -351,8 +380,8 @@ class CommitManager {
         });
         console.log(chalk.green('✅ 提交成功！'));
       } catch (error) {
-        // 检查是否是Git hooks阻止提交（返回代码1）
-        if (error.status === 1) {
+        // 如果使用了--no-hooks，就不需要检查Git hooks错误
+        if (!this.noHooks && error.status === 1) {
           throw new Error('Git hooks阻止提交');
         }
         throw new Error('Git提交失败: ' + error.message);
@@ -398,6 +427,9 @@ class CommitManager {
       if (this.packageJsonDir) {
         console.log(chalk.gray(`📦 项目根目录: ${this.packageJsonDir}`));
       }
+      if (this.noHooks) {
+        console.log(chalk.yellow('⚠️  已启用 --no-hooks 模式，将跳过所有Git hooks验证'));
+      }
       console.log('');
 
       // 检查是否有待提交的更改
@@ -416,9 +448,9 @@ class CommitManager {
         try {
           await this.useCommitizen(commitizenStatus.projectRoot, false);
         } catch (error) {
-          // 检查是否是Git hooks阻止提交
-          if (error.message.includes('git exited with error code 1') || 
-              error.message.includes('Commitizen退出，代码: 1')) {
+          // 如果启用了--no-hooks，跳过Git hooks错误检查
+          if (!this.noHooks && (error.message.includes('git exited with error code 1') || 
+              error.message.includes('Commitizen退出，代码: 1'))) {
             console.log(chalk.red('❌ Git hooks阻止提交，流程终止'));
             return;
           }
@@ -432,9 +464,9 @@ class CommitManager {
         try {
           await this.useCommitizen(commitizenStatus.projectRoot, false);
         } catch (error) {
-          // 检查是否是Git hooks阻止提交
-          if (error.message.includes('git exited with error code 1') || 
-              error.message.includes('Commitizen退出，代码: 1')) {
+          // 如果启用了--no-hooks，跳过Git hooks错误检查
+          if (!this.noHooks && (error.message.includes('git exited with error code 1') || 
+              error.message.includes('Commitizen退出，代码: 1'))) {
             console.log(chalk.red('❌ Git hooks阻止提交，流程终止'));
             return;
           }
@@ -450,9 +482,9 @@ class CommitManager {
         try {
           await this.useCommitizen(executionDir, true);
         } catch (error) {
-          // 检查是否是Git hooks阻止提交
-          if (error.message.includes('git exited with error code 1') || 
-              error.message.includes('Commitizen退出，代码: 1')) {
+          // 如果启用了--no-hooks，跳过Git hooks错误检查
+          if (!this.noHooks && (error.message.includes('git exited with error code 1') || 
+              error.message.includes('Commitizen退出，代码: 1'))) {
             console.log(chalk.red('❌ Git hooks阻止提交，流程终止'));
             return;
           }
@@ -467,8 +499,9 @@ class CommitManager {
       }
 
     } catch (error) {
-      if (error.message.includes('Git hooks阻止提交')) {
+      if (!this.noHooks && error.message.includes('Git hooks阻止提交')) {
         console.log(chalk.red('\n❌ 提交被Git hooks阻止，请按照提示修正后重试'));
+        console.log(chalk.yellow('💡 你也可以使用 --no-hooks 选项跳过所有限制'));
         process.exit(1);
       } else {
         console.error(chalk.red('❌ 提交失败:'), error.message);
