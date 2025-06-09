@@ -351,6 +351,10 @@ class CommitManager {
         });
         console.log(chalk.green('✅ 提交成功！'));
       } catch (error) {
+        // 检查是否是Git hooks阻止提交（返回代码1）
+        if (error.status === 1) {
+          throw new Error('Git hooks阻止提交');
+        }
         throw new Error('Git提交失败: ' + error.message);
       }
 
@@ -412,6 +416,13 @@ class CommitManager {
         try {
           await this.useCommitizen(commitizenStatus.projectRoot, false);
         } catch (error) {
+          // 检查是否是Git hooks阻止提交
+          if (error.message.includes('git exited with error code 1') || 
+              error.message.includes('Commitizen退出，代码: 1')) {
+            console.log(chalk.red('❌ Git hooks阻止提交，流程终止'));
+            return;
+          }
+          
           console.log(chalk.yellow('⚠️  Commitizen执行失败，切换到内置提交界面'));
           console.log(chalk.gray(`错误信息: ${error.message}`));
           await this.useBuiltinCommit();
@@ -421,6 +432,13 @@ class CommitManager {
         try {
           await this.useCommitizen(commitizenStatus.projectRoot, false);
         } catch (error) {
+          // 检查是否是Git hooks阻止提交
+          if (error.message.includes('git exited with error code 1') || 
+              error.message.includes('Commitizen退出，代码: 1')) {
+            console.log(chalk.red('❌ Git hooks阻止提交，流程终止'));
+            return;
+          }
+          
           console.log(chalk.yellow('⚠️  Commitizen执行失败，切换到内置提交界面'));
           console.log(chalk.gray(`错误信息: ${error.message}`));
           await this.useBuiltinCommit();
@@ -432,6 +450,13 @@ class CommitManager {
         try {
           await this.useCommitizen(executionDir, true);
         } catch (error) {
+          // 检查是否是Git hooks阻止提交
+          if (error.message.includes('git exited with error code 1') || 
+              error.message.includes('Commitizen退出，代码: 1')) {
+            console.log(chalk.red('❌ Git hooks阻止提交，流程终止'));
+            return;
+          }
+          
           console.log(chalk.yellow('⚠️  全局Commitizen执行失败，切换到内置提交界面'));
           console.log(chalk.gray(`错误信息: ${error.message}`));
           await this.useBuiltinCommit();
@@ -442,8 +467,13 @@ class CommitManager {
       }
 
     } catch (error) {
-      console.error(chalk.red('❌ 提交失败:'), error.message);
-      process.exit(1);
+      if (error.message.includes('Git hooks阻止提交')) {
+        console.log(chalk.red('\n❌ 提交被Git hooks阻止，请按照提示修正后重试'));
+        process.exit(1);
+      } else {
+        console.error(chalk.red('❌ 提交失败:'), error.message);
+        process.exit(1);
+      }
     }
   }
 }

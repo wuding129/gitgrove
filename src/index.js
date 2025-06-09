@@ -437,15 +437,7 @@ pre-commit:
     // 在 monorepo 场景下，lefthook.yml 需要放在 Git 根目录
     const lefthookConfigPath = path.join(this.gitRoot, 'lefthook.yml');
     
-    // 检查是否已存在配置文件
-    if (fs.existsSync(lefthookConfigPath)) {
-      // 如果已存在且内容相似，则不覆盖
-      const existingContent = await fs.readFile(lefthookConfigPath, 'utf8');
-      if (existingContent.includes('Git规范化工作流配置')) {
-        return; // 配置已存在，跳过创建
-      }
-    }
-
+    // 始终覆盖现有的 lefthook.yml 配置文件
     await fs.writeFile(lefthookConfigPath, config);
     
     // 创建scripts目录和脚本文件
