@@ -401,8 +401,7 @@ class GitWorkflowInitializer {
       path.join(this.projectRoot, '.cz-config.js'),
       config
     );
-  }
-  async createLefthookConfig() {
+  }  async createLefthookConfig() {
     const config = `# Git规范化工作流配置
 # 分支创建约束和提交规范验证
 
@@ -410,7 +409,7 @@ class GitWorkflowInitializer {
 pre-push:
   commands:
     branch-name-check:
-      run: node -e "const { execSync } = require('child_process'); try { const currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim(); if (currentBranch === 'master' || currentBranch === 'main') { process.exit(0); } const validPatterns = [/^feature_.+/, /^hotfix_.+/, /^bugfix_.+/]; const isValidBranch = validPatterns.some(pattern => pattern.test(currentBranch)); if (isValidBranch) { console.log('✅ 分支名称符合规范: ' + currentBranch); process.exit(0); } else { console.log('❌ 错误: 分支名 \\'' + currentBranch + '\\' 不符合规范!'); console.log('📋 正确格式:'); console.log('   🔹 feature_[模块]_[描述] (例: feature_user_login)'); console.log('   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)'); console.log('   🔹 bugfix_[描述] (例: bugfix_scroll_error)'); console.log(''); console.log('💡 使用以下命令创建规范分支:'); console.log('   gg branch 或 gg b (交互式创建分支)'); process.exit(1); } } catch (error) { console.log('⚠️  无法获取分支信息，跳过检查'); process.exit(0); }"
+      run: node scripts/branch-name-check.js
 
 # 提交信息验证
 commit-msg:
@@ -424,7 +423,7 @@ pre-commit:
   commands:
     # 防止直接提交到master分支 (Windows兼容版本)
     protect-master:
-      run: node -e "const { execSync } = require('child_process'); try { const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim(); if (branch === 'master' || branch === 'main') { console.log('❌ 错误: 禁止直接向主分支提交!'); console.log('📋 正确流程:'); console.log('   1. 创建功能分支: git checkout -b feature_[模块]_[描述]'); console.log('   2. 在功能分支上开发和提交'); console.log('   3. 通过Pull Request合并到主分支'); process.exit(1); } } catch (error) { console.log('⚠️  无法获取分支信息，跳过检查'); process.exit(0); }"
+      run: node scripts/protect-master.js
         
     # 代码质量检查
     lint-staged:
@@ -448,6 +447,86 @@ pre-commit:
     }
 
     await fs.writeFile(lefthookConfigPath, config);
+    
+    // 创建scripts目录和脚本文件
+    await this.createHookScripts();
+  }
+
+  async createHookScripts() {
+    // 创建scripts目录
+    const scriptsDir = path.join(this.gitRoot, 'scripts');
+    await fs.ensureDir(scriptsDir);
+
+    // 创建分支名检查脚本
+    const branchCheckScript = `#!/usr/bin/env node
+
+// Windows兼容的分支名称检查脚本
+const { execSync } = require('child_process');
+
+try {
+  // 获取当前分支名
+  const currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim() ||
+                       execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
+  
+  // 跳过master/main分支的检查
+  if (currentBranch === 'master' || currentBranch === 'main') {
+    process.exit(0);
+  }
+  
+  // 分支命名规范校验
+  const validPatterns = [
+    /^feature_.+/,
+    /^hotfix_.+/,
+    /^bugfix_.+/
+  ];
+  
+  const isValidBranch = validPatterns.some(pattern => pattern.test(currentBranch));
+  
+  if (isValidBranch) {
+    console.log(\`✅ 分支名称符合规范: \${currentBranch}\`);
+    process.exit(0);
+  } else {
+    console.log(\`❌ 错误: 分支名 '\${currentBranch}' 不符合规范!\`);
+    console.log('📋 正确格式:');
+    console.log('   🔹 feature_[模块]_[描述] (例: feature_user_login)');
+    console.log('   🔹 hotfix_v[版本]_[描述] (例: hotfix_v1.0.3_login_fix)');
+    console.log('   🔹 bugfix_[描述] (例: bugfix_scroll_error)');
+    console.log('');
+    console.log('💡 使用以下命令创建规范分支:');
+    console.log('   gg branch 或 gg b (交互式创建分支)');
+    process.exit(1);
+  }
+} catch (error) {
+  // 如果无法获取分支信息，允许继续
+  console.log('⚠️  无法获取分支信息，跳过检查');
+  process.exit(0);
+}`;
+
+    // 创建master分支保护脚本
+    const protectMasterScript = `#!/usr/bin/env node
+
+// Windows兼容的master分支保护脚本
+const { execSync } = require('child_process');
+
+try {
+  const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
+  
+  if (branch === 'master' || branch === 'main') {
+    console.log('❌ 错误: 禁止直接向主分支提交!');
+    console.log('📋 正确流程:');
+    console.log('   1. 创建功能分支: git checkout -b feature_[模块]_[描述]');
+    console.log('   2. 在功能分支上开发和提交');
+    console.log('   3. 通过Pull Request合并到主分支');
+    process.exit(1);
+  }
+} catch (error) {
+  // 如果无法获取分支信息，允许继续
+  console.log('⚠️  无法获取分支信息，跳过检查');
+}`;
+
+    // 写入脚本文件
+    await fs.writeFile(path.join(scriptsDir, 'branch-name-check.js'), branchCheckScript);
+    await fs.writeFile(path.join(scriptsDir, 'protect-master.js'), protectMasterScript);
   }
 
   async createVersionConfig() {
