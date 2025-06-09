@@ -113,11 +113,9 @@ class CommitManager {
       if (fs.existsSync(path.join(this.gitRoot, configFile))) {
         return { hasConfig: true, projectRoot: this.gitRoot };
       }
-    }
-
-    // 检查全局commitizen
+    }    // 检查全局commitizen
     const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
+    const whichCommand = isWindows ? 'where.exe' : 'which';
     
     try {
       execSync(`${whichCommand} cz`, { stdio: 'pipe' });
@@ -153,8 +151,7 @@ class CommitManager {
         if (executionDir && executionDir !== originalCwd) {
           process.chdir(executionDir);
         }
-        
-        let command, args;
+          let command, args;
         
         if (useGlobal) {
           // 使用全局commitizen，直接调用cz命令
@@ -162,25 +159,47 @@ class CommitManager {
           args = [];
         } else {
           // 尝试使用本地的commitizen
-          // 根据操作系统选择合适的命令检查工具
           const isWindows = process.platform === 'win32';
-          const whichCommand = isWindows ? 'where' : 'which';
+          const whichCommand = isWindows ? 'where.exe' : 'which';
           
           // 检查是否有pnpm
           try {
             execSync(`${whichCommand} pnpm`, { stdio: 'pipe' });
-            command = 'pnpm';
+            command = isWindows ? 'pnpm.cmd' : 'pnpm';
             args = ['exec', 'cz'];
+            console.log(chalk.gray(`🔍 检测到pnpm，使用命令: ${command}`));
           } catch {
             // 检查是否有yarn
             try {
               execSync(`${whichCommand} yarn`, { stdio: 'pipe' });
-              command = 'yarn';
+              command = isWindows ? 'yarn.cmd' : 'yarn';
               args = ['cz'];
+              console.log(chalk.gray(`🔍 检测到yarn，使用命令: ${command}`));
             } catch {
-              // 使用npm
-              command = 'npx';
-              args = ['cz'];
+              // 检查是否有npm/npx
+              try {
+                execSync(`${whichCommand} npm`, { stdio: 'pipe' });
+                // Windows下npx可能不在PATH中，直接使用npm exec
+                if (isWindows) {
+                  command = 'npm.cmd';
+                  args = ['exec', 'cz'];
+                  console.log(chalk.gray(`🔍 检测到npm，使用命令: ${command}`));
+                } else {
+                  // 检查npx是否可用
+                  try {
+                    execSync(`${whichCommand} npx`, { stdio: 'pipe' });
+                    command = 'npx';
+                    args = ['cz'];
+                    console.log(chalk.gray(`🔍 检测到npx，使用命令: ${command}`));
+                  } catch {
+                    command = 'npm';
+                    args = ['exec', 'cz'];
+                    console.log(chalk.gray(`🔍 fallback到npm，使用命令: ${command}`));
+                  }
+                }
+              } catch {
+                throw new Error('未找到npm、yarn或pnpm，请确保已安装Node.js包管理器');
+              }
             }
           }
         }
@@ -210,10 +229,13 @@ class CommitManager {
             reject(new Error(`Commitizen退出，代码: ${code}`));
           }
         });
-        
-        child.on('error', (error) => {
+          child.on('error', (error) => {
           process.chdir(originalCwd);
-          reject(error);
+          if (error.code === 'ENOENT') {
+            reject(new Error(`命令 "${command}" 未找到，请确保已正确安装 ${command === 'npm' ? 'Node.js' : command}`));
+          } else {
+            reject(new Error(`执行 ${command} 时出错: ${error.message}`));
+          }
         });
         
       } catch (error) {
@@ -382,22 +404,38 @@ class CommitManager {
       // 显示当前状态
       console.log(chalk.cyan('📋 当前Git状态:'));
       execSync('git status --short', { stdio: 'inherit', cwd: this.gitRoot });
-      console.log('');
-
-      // 检查Commitizen配置
+      console.log('');      // 检查Commitizen配置
       const commitizenStatus = this.checkCommitizen();
       
       if (commitizenStatus.hasConfig) {
         console.log(chalk.green('✅ 检测到Commitizen配置，使用项目配置进行提交'));
-        await this.useCommitizen(commitizenStatus.projectRoot, false);
+        try {
+          await this.useCommitizen(commitizenStatus.projectRoot, false);
+        } catch (error) {
+          console.log(chalk.yellow('⚠️  Commitizen执行失败，切换到内置提交界面'));
+          console.log(chalk.gray(`错误信息: ${error.message}`));
+          await this.useBuiltinCommit();
+        }
       } else if (commitizenStatus.hasCommitizen) {
         console.log(chalk.yellow('⚠️  检测到Commitizen但无配置，使用默认配置进行提交'));
-        await this.useCommitizen(commitizenStatus.projectRoot, false);
+        try {
+          await this.useCommitizen(commitizenStatus.projectRoot, false);
+        } catch (error) {
+          console.log(chalk.yellow('⚠️  Commitizen执行失败，切换到内置提交界面'));
+          console.log(chalk.gray(`错误信息: ${error.message}`));
+          await this.useBuiltinCommit();
+        }
       } else if (commitizenStatus.hasGlobal) {
         console.log(chalk.blue('🌐 使用全局Commitizen进行提交'));
         // 使用全局commitizen，但在有配置文件的目录中执行
         const executionDir = this.packageJsonDir || this.gitRoot;
-        await this.useCommitizen(executionDir, true);
+        try {
+          await this.useCommitizen(executionDir, true);
+        } catch (error) {
+          console.log(chalk.yellow('⚠️  全局Commitizen执行失败，切换到内置提交界面'));
+          console.log(chalk.gray(`错误信息: ${error.message}`));
+          await this.useBuiltinCommit();
+        }
       } else {
         console.log(chalk.blue('🔧 未检测到Commitizen，使用内置提交界面'));
         await this.useBuiltinCommit();
