@@ -3,6 +3,15 @@
 自动生成的版本历史记录。
 
 
+### [1.1.9](https://github.com/wuding129/gitgrove/compare/v1.1.8...v1.1.9) (2025-06-09)
+
+
+### ✨ 新功能
+
+* add --no-hooks option to bypass git hooks restrictions ([6875862](https://github.com/wuding129/gitgrove/commit/6875862944423eed79a012b08fbcc860e9142690))
+* test --no-hooks functionality ([64d656d](https://github.com/wuding129/gitgrove/commit/64d656dafcb9e3806695b7044913c6a1ca249755))
+* 支持绕过hooks ([662de69](https://github.com/wuding129/gitgrove/commit/662de69931edfdb49323a2d7ff3eeb1f6f25af2e))
+
 ### [1.1.8](https://github.com/wuding129/gitgrove/compare/v1.1.6...v1.1.8) (2025-06-09)
 
 
