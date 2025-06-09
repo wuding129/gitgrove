@@ -408,6 +408,3 @@ MIT
 [![npm version](https://img.shields.io/npm/v/gitgrove.svg)](https://www.npmjs.com/package/gitgrove)
 [![Downloads](https://img.shields.io/npm/dm/gitgrove.svg)](https://npmcharts.com/compare/gitgrove)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-
-dddd

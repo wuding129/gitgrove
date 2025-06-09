@@ -282,9 +282,11 @@ class BranchManager {
 
       // 创建并切换分支
       try {
+        const isWindows = process.platform === 'win32';
         execSync(`git checkout -b ${branchName}`, {
           stdio: 'inherit',
-          cwd: this.gitRoot
+          cwd: this.gitRoot,
+          shell: isWindows
         });
 
         console.log(chalk.green('✅ 分支创建成功！'));

@@ -116,15 +116,18 @@ class CommitManager {
     }
 
     // 检查全局commitizen
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+    
     try {
-      execSync('which cz', { stdio: 'pipe' });
+      execSync(`${whichCommand} cz`, { stdio: 'pipe' });
       return { hasGlobal: true };
     } catch {
       // cz not found globally
     }
 
     try {
-      execSync('which commitizen', { stdio: 'pipe' });
+      execSync(`${whichCommand} commitizen`, { stdio: 'pipe' });
       return { hasGlobal: true };
     } catch {
       // commitizen not found globally
@@ -159,15 +162,19 @@ class CommitManager {
           args = [];
         } else {
           // 尝试使用本地的commitizen
+          // 根据操作系统选择合适的命令检查工具
+          const isWindows = process.platform === 'win32';
+          const whichCommand = isWindows ? 'where' : 'which';
+          
           // 检查是否有pnpm
           try {
-            execSync('which pnpm', { stdio: 'pipe' });
+            execSync(`${whichCommand} pnpm`, { stdio: 'pipe' });
             command = 'pnpm';
             args = ['exec', 'cz'];
           } catch {
             // 检查是否有yarn
             try {
-              execSync('which yarn', { stdio: 'pipe' });
+              execSync(`${whichCommand} yarn`, { stdio: 'pipe' });
               command = 'yarn';
               args = ['cz'];
             } catch {
@@ -180,10 +187,19 @@ class CommitManager {
         
         console.log(chalk.gray(`💡 在目录 ${executionDir} 中执行: ${command} ${args.join(' ')}`));
         
-        const child = spawn(command, args, {
+        // Windows下需要特殊处理spawn命令
+        const isWindows = process.platform === 'win32';
+        const spawnOptions = {
           stdio: 'inherit',
           cwd: executionDir
-        });
+        };
+        
+        // Windows下需要设置shell: true
+        if (isWindows) {
+          spawnOptions.shell = true;
+        }
+        
+        const child = spawn(command, args, spawnOptions);
         
         child.on('close', (code) => {
           process.chdir(originalCwd);
@@ -292,9 +308,24 @@ class CommitManager {
 
       // 执行git commit
       try {
-        execSync(`git commit -m "${fullMessage.replace(/"/g, '\\"')}"`, {
+        // Windows下需要特殊处理引号转义
+        const isWindows = process.platform === 'win32';
+        let commitCommand;
+        
+        if (isWindows) {
+          // Windows下使用双引号包裹，内部双引号转义为\"
+          const escapedMessage = fullMessage.replace(/"/g, '\\"');
+          commitCommand = `git commit -m "${escapedMessage}"`;
+        } else {
+          // Unix系统下的处理
+          const escapedMessage = fullMessage.replace(/"/g, '\\"');
+          commitCommand = `git commit -m "${escapedMessage}"`;
+        }
+        
+        execSync(commitCommand, {
           stdio: 'inherit',
-          cwd: this.gitRoot
+          cwd: this.gitRoot,
+          shell: isWindows // Windows下需要shell
         });
         console.log(chalk.green('✅ 提交成功！'));
       } catch (error) {

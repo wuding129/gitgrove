@@ -126,9 +126,11 @@ class ReleaseManager {
         command = `npx standard-version`;
       }
 
+      const isWindows = process.platform === 'win32';
       execSync(command, {
         cwd: this.projectRoot,
-        stdio: 'inherit'
+        stdio: 'inherit',
+        shell: isWindows
       });
 
       spinner.succeed('✅ 版本发布完成');

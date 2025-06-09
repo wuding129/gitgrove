@@ -228,10 +228,12 @@ class GitWorkflowInitializer {
       ];
 
       const installCommand = this.getInstallCommand(dependencies);
+      const isWindows = process.platform === 'win32';
       
       execSync(installCommand, { 
         stdio: 'pipe',
-        cwd: this.projectRoot 
+        cwd: this.projectRoot,
+        shell: isWindows 
       });
 
       spinner.succeed('✅ 依赖安装完成');

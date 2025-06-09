@@ -49,7 +49,11 @@ class SetupManager {
 
     try {
       const installCommand = packageManager === 'yarn' ? 'yarn install' : `${packageManager} install`;
-      execSync(installCommand, { stdio: 'inherit' });
+      const isWindows = process.platform === 'win32';
+      execSync(installCommand, { 
+        stdio: 'inherit',
+        shell: isWindows 
+      });
       spinner.succeed(chalk.green('✅ 依赖安装完成'));
     } catch (error) {
       spinner.fail(chalk.red('❌ 依赖安装失败'));
@@ -64,7 +68,11 @@ class SetupManager {
     const spinner = ora(chalk.blue('🔧 配置Git hooks...')).start();
 
     try {
-      execSync('lefthook install', { stdio: 'inherit' });
+      const isWindows = process.platform === 'win32';
+      execSync('lefthook install', { 
+        stdio: 'inherit',
+        shell: isWindows 
+      });
       spinner.succeed(chalk.green('✅ Git hooks配置完成'));
     } catch (error) {
       spinner.fail(chalk.red('❌ Git hooks配置失败'));

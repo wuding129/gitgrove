@@ -157,7 +157,9 @@ function checkGitWorkflow() {
   // 检查gitgrove是否可用
   try {
     const { execSync } = require('child_process');
-    execSync('which gg', { stdio: 'ignore' });
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+    execSync(`${whichCommand} gg`, { stdio: 'ignore' });
     console.log(chalk.green('✅ gg - 全局命令可用'));
     
     const availableCommands = [

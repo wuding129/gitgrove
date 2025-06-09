@@ -164,7 +164,11 @@ class AddManager {
   async addAll() {
     try {
       console.log(chalk.blue('📦 添加所有文件...'));
-      execSync('git add .', { stdio: 'inherit' });
+      const isWindows = process.platform === 'win32';
+      execSync('git add .', { 
+        stdio: 'inherit',
+        shell: isWindows 
+      });
       console.log(chalk.green('✅ 已添加所有文件到暂存区'));
       this.showNextSteps();
     } catch (error) {
@@ -178,7 +182,11 @@ class AddManager {
   async addTracked() {
     try {
       console.log(chalk.blue('📝 添加已跟踪的修改文件...'));
-      execSync('git add -u', { stdio: 'inherit' });
+      const isWindows = process.platform === 'win32';
+      execSync('git add -u', { 
+        stdio: 'inherit',
+        shell: isWindows 
+      });
       console.log(chalk.green('✅ 已添加所有修改文件到暂存区'));
       this.showNextSteps();
     } catch (error) {
@@ -195,7 +203,11 @@ class AddManager {
       
       // 对文件名进行转义处理
       const escapedFiles = files.map(file => `"${file}"`).join(' ');
-      execSync(`git add ${escapedFiles}`, { stdio: 'inherit' });
+      const isWindows = process.platform === 'win32';
+      execSync(`git add ${escapedFiles}`, { 
+        stdio: 'inherit',
+        shell: isWindows 
+      });
       
       console.log(chalk.green('✅ 文件已添加到暂存区:'));
       files.forEach(file => {
@@ -218,7 +230,11 @@ class AddManager {
       const files = args.join(' ');
       console.log(chalk.blue(`📁 添加文件: ${files}`));
       
-      execSync(`git add ${files}`, { stdio: 'inherit' });
+      const isWindows = process.platform === 'win32';
+      execSync(`git add ${files}`, { 
+        stdio: 'inherit',
+        shell: isWindows 
+      });
       console.log(chalk.green('✅ 文件已添加到暂存区'));
       this.showNextSteps();
     } catch (error) {

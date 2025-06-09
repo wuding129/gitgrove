@@ -122,14 +122,21 @@ class HooksFixer {
    * 重新安装lefthook
    */
   async reinstallLefthook() {
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+    
     try {
       // 检查lefthook是否可用
-      execSync('which lefthook', { stdio: 'ignore' });
+      execSync(`${whichCommand} lefthook`, { 
+        stdio: 'ignore',
+        shell: isWindows 
+      });
       
       // 在Git根目录运行lefthook install
       execSync('lefthook install', { 
         cwd: this.gitRoot,
-        stdio: 'inherit'
+        stdio: 'inherit',
+        shell: isWindows
       });
     } catch (error) {
       throw new Error('lefthook不可用或安装失败');
