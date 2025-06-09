@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+## [1.2.0](https://github.com/wuding129/gitgrove/compare/v1.1.9...v1.2.0) (2025-06-09)
+
+
+### ✨ 新功能
+
+* 增加包管理工具严格限制选项 ([50f233f](https://github.com/wuding129/gitgrove/commit/50f233ffdac3360a8505fef73b1ace90ddec7653))
+
 ### [1.1.9](https://github.com/wuding129/gitgrove/compare/v1.1.8...v1.1.9) (2025-06-09)
 
 
