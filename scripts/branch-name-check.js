@@ -7,21 +7,21 @@ try {
   // 获取当前分支名
   const currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim() ||
                        execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-  
+
   // 跳过master/main分支的检查
   if (currentBranch === 'master' || currentBranch === 'main') {
     process.exit(0);
   }
-  
+
   // 分支命名规范校验
   const validPatterns = [
     /^feature_.+/,
     /^hotfix_.+/,
     /^bugfix_.+/
   ];
-  
+
   const isValidBranch = validPatterns.some(pattern => pattern.test(currentBranch));
-  
+
   if (isValidBranch) {
     console.log(`✅ 分支名称符合规范: ${currentBranch}`);
     process.exit(0);

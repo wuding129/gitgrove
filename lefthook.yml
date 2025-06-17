@@ -20,7 +20,7 @@ pre-commit:
     # 防止直接提交到master分支 (Windows兼容版本)
     protect-master:
       run: node scripts/protect-master.js
-        
+
     # 代码质量检查
     lint-staged:
       glob: "*.{js,ts,vue,jsx,tsx}"

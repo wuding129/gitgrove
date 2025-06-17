@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 
 try {
   const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
-  
+
   if (branch === 'master' || branch === 'main') {
     console.log('❌ 错误: 禁止直接向主分支提交!');
     console.log('📋 正确流程:');

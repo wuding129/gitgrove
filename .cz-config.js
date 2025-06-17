@@ -27,13 +27,13 @@ module.exports = {
 
   // 使用自定义范围
   allowCustomScopes: true,
-  
+
   // 允许空范围
   allowEmptyScopes: true,
-  
+
   // 允许破坏性变更
   allowBreakingChanges: ['feat', 'fix'],
-  
+
   // 跳过问题
   skipQuestions: [
     'scope',
@@ -57,10 +57,10 @@ module.exports = {
 
   // 主题长度限制 - 设置为0表示无限制
   subjectLimit: 0,
-  
-  // 正文换行长度 - 设置为0表示无限制  
+
+  // 正文换行长度 - 设置为0表示无限制
   bodyLineLength: 0,
-  
+
   // 页脚换行长度 - 设置为0表示无限制
   footerLineLength: 0
 };

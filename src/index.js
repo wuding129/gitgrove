@@ -9,25 +9,26 @@ class GitWorkflowInitializer {
   constructor(options = {}) {
     this.options = options;
     this.currentDir = process.cwd();
-    
+    this.force = options.force || false; // 添加 force 选项
+
     // 查找Git根目录和package.json目录
     const { gitRoot, packageJsonDir } = this.findProjectDirectories();
     this.gitRoot = gitRoot;
     this.projectRoot = packageJsonDir || this.currentDir;
-    
+
     // 检测是否有wbox.config.json文件，如果有则默认严格使用npm
     this.hasWboxConfig = fs.existsSync(path.join(this.projectRoot, 'wbox.config.json'));
     if (this.hasWboxConfig && !options.onlyNpm && !options.onlyPnpm && !options.onlyYarn) {
       console.log(chalk.yellow('💡 检测到wbox.config.json，将严格限制使用npm包管理器'));
       this.options.onlyNpm = true;
     }
-    
+
     // 确定严格模式的包管理器
     this.strictPackageManager = null;
     if (this.options.onlyNpm) this.strictPackageManager = 'npm';
     if (this.options.onlyPnpm) this.strictPackageManager = 'pnpm';
     if (this.options.onlyYarn) this.strictPackageManager = 'yarn';
-    
+
     this.packageManager = this.detectPackageManager();
   }
 
@@ -38,36 +39,36 @@ class GitWorkflowInitializer {
   findProjectDirectories() {
     let gitRoot = null;
     let packageJsonDir = null;
-    
+
     // 从当前目录开始向上查找
     let currentPath = this.currentDir;
-    
+
     while (currentPath !== path.dirname(currentPath)) {
       // 检查是否有.git目录
       if (fs.existsSync(path.join(currentPath, '.git'))) {
         gitRoot = currentPath;
       }
-      
+
       // 检查是否有package.json文件（只记录最近的一个）
       if (!packageJsonDir && fs.existsSync(path.join(currentPath, 'package.json'))) {
         packageJsonDir = currentPath;
       }
-      
+
       currentPath = path.dirname(currentPath);
     }
-    
+
     // 如果找到了Git根目录但没有package.json，可以在当前目录创建
     if (gitRoot && !packageJsonDir && this.currentDir.startsWith(gitRoot)) {
       packageJsonDir = this.currentDir; // 使用当前目录作为项目根目录
     }
-    
+
     return { gitRoot, packageJsonDir };
   }
 
   detectPackageManager() {
     // 如果指定了严格模式，强制使用指定的包管理器
     if (this.strictPackageManager) return this.strictPackageManager;
-    
+
     if (this.options.npm) return 'npm';
     if (this.options.pnpm) return 'pnpm';
     if (this.options.yarn) return 'yarn';
@@ -75,13 +76,13 @@ class GitWorkflowInitializer {
     // 先在当前项目目录检查
     if (fs.existsSync(path.join(this.projectRoot, 'pnpm-lock.yaml'))) return 'pnpm';
     if (fs.existsSync(path.join(this.projectRoot, 'yarn.lock'))) return 'yarn';
-    
+
     // 然后在Git根目录检查（monorepo场景）
     if (this.gitRoot && this.gitRoot !== this.projectRoot) {
       if (fs.existsSync(path.join(this.gitRoot, 'pnpm-lock.yaml'))) return 'pnpm';
       if (fs.existsSync(path.join(this.gitRoot, 'yarn.lock'))) return 'yarn';
     }
-    
+
     return 'npm';
   }
 
@@ -161,7 +162,7 @@ class GitWorkflowInitializer {
   async createBasicPackageJson() {
     const packageJsonPath = path.join(this.projectRoot, 'package.json');
     const projectName = path.basename(this.projectRoot);
-    
+
     const basicPackageJson = {
       name: projectName,
       version: "1.0.0",
@@ -187,7 +188,7 @@ class GitWorkflowInitializer {
       '.versionrc.js'
     ];
 
-    const existingFiles = configFiles.filter(file => 
+    const existingFiles = configFiles.filter(file =>
       fs.existsSync(path.join(this.projectRoot, file))
     );
 
@@ -250,11 +251,11 @@ class GitWorkflowInitializer {
 
       const installCommand = this.getInstallCommand(dependencies);
       const isWindows = process.platform === 'win32';
-      
-      execSync(installCommand, { 
+
+      execSync(installCommand, {
         stdio: 'pipe',
         cwd: this.projectRoot,
-        shell: isWindows 
+        shell: isWindows
       });
 
       spinner.succeed('✅ 依赖安装完成');
@@ -266,7 +267,7 @@ class GitWorkflowInitializer {
 
   getInstallCommand(dependencies) {
     const depsStr = dependencies.join(' ');
-    
+
     switch (this.packageManager) {
       case 'npm':
         return `npm install --save-dev ${depsStr}`;
@@ -285,19 +286,28 @@ class GitWorkflowInitializer {
     try {
       // 创建commitlint配置
       await this.createCommitlintConfig();
-      
+
       // 创建cz-customizable配置
       await this.createCzConfig();
-      
+
       // 创建lefthook配置
       await this.createLefthookConfig();
-      
+
       // 创建版本发布配置
       await this.createVersionConfig();
 
-      spinner.succeed('✅ 配置文件创建完成');
+      // 暂停spinner以避免影响交互
+      spinner.stop();
+
+      // 创建EditorConfig配置
+      await this.createEditorConfig();
+
+      // 重新开始spinner并完成
+      const newSpinner = ora('📝 配置文件创建完成').start();
+      newSpinner.succeed('✅ 配置文件创建完成');
     } catch (error) {
       spinner.fail('❌ 配置文件创建失败');
+      console.error('错误详情:', error);
       throw error;
     }
   }
@@ -341,7 +351,7 @@ class GitWorkflowInitializer {
       path.join(this.projectRoot, 'commitlint.config.js'),
       config
     );
-    
+
     // 在 monorepo 场景下，不在 Git 根目录创建配置文件
     // 因为这会导致依赖解析问题，让commitlint使用子项目的配置
     console.log('📝 Commitlint配置已创建在项目目录中');
@@ -380,13 +390,13 @@ class GitWorkflowInitializer {
 
   // 使用自定义范围
   allowCustomScopes: true,
-  
+
   // 允许空范围
   allowEmptyScopes: true,
-  
+
   // 允许破坏性变更
   allowBreakingChanges: ['feat', 'fix'],
-  
+
   // 跳过问题
   skipQuestions: [
     'scope',
@@ -410,10 +420,10 @@ class GitWorkflowInitializer {
 
   // 主题长度限制 - 设置为0表示无限制
   subjectLimit: 0,
-  
-  // 正文换行长度 - 设置为0表示无限制  
+
+  // 正文换行长度 - 设置为0表示无限制
   bodyLineLength: 0,
-  
+
   // 页脚换行长度 - 设置为0表示无限制
   footerLineLength: 0
 };`;
@@ -445,7 +455,7 @@ pre-commit:
     # 防止直接提交到master分支 (Windows兼容版本)
     protect-master:
       run: node scripts/protect-master.js
-        
+
     # 代码质量检查
     lint-staged:
       glob: "*.{js,ts,vue,jsx,tsx}"
@@ -457,10 +467,10 @@ pre-commit:
 
     // 在 monorepo 场景下，lefthook.yml 需要放在 Git 根目录
     const lefthookConfigPath = path.join(this.gitRoot, 'lefthook.yml');
-    
+
     // 始终覆盖现有的 lefthook.yml 配置文件
     await fs.writeFile(lefthookConfigPath, config);
-    
+
     // 创建scripts目录和脚本文件
     await this.createHookScripts();
   }
@@ -480,21 +490,21 @@ try {
   // 获取当前分支名
   const currentBranch = execSync('git branch --show-current', { encoding: 'utf8' }).trim() ||
                        execSync('git rev-parse --abbrev-ref HEAD', { encoding: 'utf8' }).trim();
-  
+
   // 跳过master/main分支的检查
   if (currentBranch === 'master' || currentBranch === 'main') {
     process.exit(0);
   }
-  
+
   // 分支命名规范校验
   const validPatterns = [
     /^feature_.+/,
     /^hotfix_.+/,
     /^bugfix_.+/
   ];
-  
+
   const isValidBranch = validPatterns.some(pattern => pattern.test(currentBranch));
-  
+
   if (isValidBranch) {
     console.log(\`✅ 分支名称符合规范: \${currentBranch}\`);
     process.exit(0);
@@ -523,7 +533,7 @@ const { execSync } = require('child_process');
 
 try {
   const branch = execSync('git branch --show-current', { encoding: 'utf8' }).trim();
-  
+
   if (branch === 'master' || branch === 'main') {
     console.log('❌ 错误: 禁止直接向主分支提交!');
     console.log('📋 正确流程:');
@@ -577,6 +587,51 @@ try {
     );
   }
 
+  async createEditorConfig() {
+    const editorconfigPath = path.join(this.projectRoot, '.editorconfig');
+    const exists = await fs.pathExists(editorconfigPath);
+
+    // 如果文件存在且不是强制模式，询问用户是否覆盖
+    if (exists && !this.force) {
+      const answer = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'overwrite',
+          message: '检测到已存在 .editorconfig 文件，是否覆盖？',
+          default: false
+        }
+      ]);
+
+      if (!answer.overwrite) {
+        console.log('ℹ️  保留现有的 .editorconfig 文件');
+        return; // 用户选择不覆盖，直接返回
+      }
+    }
+
+    // EditorConfig配置内容
+    const config = `root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 2
+end_of_line = lf
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.md]
+trim_trailing_whitespace = false
+`;
+
+    await fs.writeFile(editorconfigPath, config);
+
+    if (exists) {
+      console.log('✅ .editorconfig 文件已覆盖');
+    } else {
+      console.log('✅ .editorconfig 文件已创建');
+    }
+  }
+
   async updatePackageJson() {
     const spinner = ora('⚙️  更新package.json...').start();
 
@@ -589,9 +644,9 @@ try {
 
       // 添加scripts
       packageJson.scripts = packageJson.scripts || {};
-      
-      const runCommand = this.packageManager === 'npm' ? 'npm run' : 
-                        this.packageManager === 'pnpm' ? 'pnpm run' : 
+
+      const runCommand = this.packageManager === 'npm' ? 'npm run' :
+                        this.packageManager === 'pnpm' ? 'pnpm run' :
                         this.packageManager === 'yarn' ? 'yarn run' : 'npm run';
 
       const gitScripts = {
@@ -618,11 +673,11 @@ try {
       };
 
       await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
-      
+
       if (this.strictPackageManager) {
         spinner.info(`📦 已添加包管理器限制: 只允许使用 ${this.strictPackageManager}`);
       }
-      
+
       spinner.succeed('✅ package.json更新完成');
     } catch (error) {
       spinner.fail('❌ package.json更新失败');
@@ -637,14 +692,14 @@ try {
 
     try {
       const gitignorePath = path.join(this.projectRoot, '.gitignore');
-      
+
       // 确保.gitignore存在
       if (!fs.existsSync(gitignorePath)) {
         await fs.writeFile(gitignorePath, '');
       }
 
       const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-      
+
       // 检查是否已经包含Git工具相关的忽略项
       if (!gitignoreContent.includes('# Git工具临时文件')) {
         const gitIgnoreEntries = `
@@ -675,24 +730,24 @@ try {
     try {
       // 使用Git根目录的hooks目录
       const hooksDir = path.join(this.gitRoot, '.git', 'hooks');
-      
+
       if (fs.existsSync(hooksDir)) {
         // 备份现有hooks
         const backupDir = path.join(this.gitRoot, '.git', `hooks-backup-${Date.now()}`);
-        const hasExistingHooks = fs.readdirSync(hooksDir).some(file => 
+        const hasExistingHooks = fs.readdirSync(hooksDir).some(file =>
           ['pre-commit', 'commit-msg', 'pre-push'].includes(file)
         );
-        
+
         if (hasExistingHooks) {
           await fs.copy(hooksDir, backupDir);
         }
-        
+
         // 清理冲突文件
         const conflictFiles = [
           'pre-commit.old', 'commit-msg.old', 'pre-push.old',
           'pre-commit.sample', 'commit-msg.sample', 'pre-push.sample'
         ];
-        
+
         for (const file of conflictFiles) {
           const filePath = path.join(hooksDir, file);
           if (fs.existsSync(filePath)) {
@@ -704,7 +759,7 @@ try {
       // 清理husky配置 - 优先在项目目录清理，然后在Git根目录清理
       const projectHuskyDir = path.join(this.projectRoot, '.husky');
       const gitHuskyDir = path.join(this.gitRoot, '.husky');
-      
+
       if (fs.existsSync(projectHuskyDir)) {
         await fs.remove(projectHuskyDir);
       }
@@ -745,9 +800,9 @@ try {
 
       for (const method of installMethods) {
         try {
-          execSync(method.command, { 
-            cwd: method.cwd, 
-            stdio: 'pipe' 
+          execSync(method.command, {
+            cwd: method.cwd,
+            stdio: 'pipe'
           });
           installSuccess = true;
           console.log(`✅ 使用${method.name}安装成功`);
@@ -764,7 +819,7 @@ try {
 
       // 验证安装（检查Git根目录的hooks）
       const requiredHooks = ['pre-commit', 'commit-msg'];
-      const allHooksInstalled = requiredHooks.every(hook => 
+      const allHooksInstalled = requiredHooks.every(hook =>
         fs.existsSync(path.join(this.gitRoot, '.git', 'hooks', hook))
       );
 
@@ -813,14 +868,14 @@ try {
         if (!gitRootPackageJson.devDependencies.lefthook) {
           gitRootPackageJson.devDependencies.lefthook = '^1.7.0';
           await fs.writeJSON(gitRootPackageJsonPath, gitRootPackageJson, { spaces: 2 });
-          
+
           // 安装lefthook
           const installCommand = this.getInstallCommand(['lefthook']);
-          execSync(installCommand, { 
-            cwd: this.gitRoot, 
-            stdio: 'pipe' 
+          execSync(installCommand, {
+            cwd: this.gitRoot,
+            stdio: 'pipe'
           });
-          
+
           console.log(`📦 已在Git根目录安装lefthook以支持monorepo`);
         }
       } catch (error) {
@@ -856,11 +911,11 @@ try {
     }
 
     console.log(chalk.blue('🌟 推荐使用全局命令 (任意目录可用):\n'));
-    
+
     console.log(chalk.yellow('  📝 智能提交:'));
     console.log(`     ${chalk.bold('gg commit')} 或 ${chalk.bold('gg c')}         # 智能检测提交配置，支持monorepo`);
     console.log(`     支持检测项目级和全局commitizen配置\n`);
-    
+
     console.log(chalk.yellow('  🌿 智能分支:'));
     console.log(`     ${chalk.bold('gg branch')} 或 ${chalk.bold('gg b')}         # 交互式创建规范分支，自动验证`);
     console.log(`     支持feature、hotfix、bugfix等类型\n`);
@@ -870,9 +925,9 @@ try {
     console.log(`     ${chalk.bold('gg fix')}                    # 修复Git hooks冲突问题\n`);
 
     const runCommand = this.getRunCommand();
-    
+
     console.log(chalk.blue('📦 项目脚本命令:\n'));
-    
+
     console.log(chalk.yellow('  🏷️  版本发布:'));
     console.log(`     ${runCommand} release             # 自动版本发布`);
     console.log(`     ${runCommand} release:major       # 主版本发布`);
@@ -883,10 +938,10 @@ try {
     console.log('   feature_[模块]_[描述]  (例: feature_user_login)');
     console.log('   hotfix_v[版本]_[描述]  (例: hotfix_v1.0.3_bug_fix)');
     console.log('   bugfix_[描述]         (例: bugfix_scroll_error)\n');
-    
+
     console.log(chalk.blue('🎯 提交类型:'));
     console.log('   feat, fix, docs, style, refactor, perf, test, chore, build, ci\n');
-    
+
     console.log(chalk.green('✨ 核心特性:'));
     console.log('   🌟 全局命令优先 - 在任意Git仓库中使用');
     console.log('   🏗️  智能Monorepo支持 - 自动检测项目结构');
@@ -897,14 +952,14 @@ try {
     console.log('   ✅ 分支命名规范验证');
     console.log('   ✅ 主分支保护机制');
     console.log('   ✅ 使用lefthook替代husky（更稳定）');
-    
+
     // 显示包管理器限制信息
     if (this.strictPackageManager) {
       console.log(`   🔒 包管理器限制 - 只允许使用 ${this.strictPackageManager}`);
     }
-    
+
     console.log('');
-    
+
     console.log(chalk.green('开始愉快的开发吧！ 🚀\n'));
     console.log(chalk.cyan('💡 极简设计: 项目中只保留一个prepare script，所有功能通过gg命令使用'));
     console.log(chalk.cyan('💡 版本发布: 使用 gg release 而非npm scripts，支持全局使用'));
