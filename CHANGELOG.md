@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+### [1.2.4](https://github.com/wuding129/gitgrove/compare/v1.2.3...v1.2.4) (2025-06-17)
+
+
+### ✨ 新功能
+
+* 增加统计信息 ([7dbd7b5](https://github.com/wuding129/gitgrove/commit/7dbd7b528ec7bc582d80627a31c046c973cfb03e))
+
 ### [1.2.3](https://github.com/wuding129/gitgrove/compare/v1.2.2...v1.2.3) (2025-06-17)
 
 
