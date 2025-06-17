@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+### [1.2.3](https://github.com/wuding129/gitgrove/compare/v1.2.2...v1.2.3) (2025-06-17)
+
+
+### 🐛 问题修复
+
+* 调整兼容性 ([43ec0bc](https://github.com/wuding129/gitgrove/commit/43ec0bc92a8d616a47e4068333f9978a7d554e16))
+
 ### [1.2.2](https://github.com/wuding129/gitgrove/compare/v1.2.1...v1.2.2) (2025-06-17)
 
 
