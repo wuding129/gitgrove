@@ -11,7 +11,7 @@ class AiStatManager {
   }
 
   async statistic() {
-    console.log(chalk.blue('🤖 AI代码占比统计\n'));
+    console.log(chalk.blue('🤖 AI代码占比统计(仅内部使用)\n'));
 
     // 读取环境变量
     const envConfig = await this.readEnvConfig();

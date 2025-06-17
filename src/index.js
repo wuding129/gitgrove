@@ -201,10 +201,6 @@ class GitWorkflowInitializer {
     await this.installDependencies();
     this.progressManager.nextStep();
 
-    this.progressManager.updateStep('📝 创建配置文件...');
-    await this.createConfigFiles();
-    this.progressManager.nextStep();
-
     this.progressManager.updateStep('⚙️  更新package.json...');
     await this.updatePackageJson();
     this.progressManager.nextStep();
@@ -213,9 +209,13 @@ class GitWorkflowInitializer {
     await this.updateGitignore();
     this.progressManager.nextStep();
 
-    // 询问是否配置AI代码统计
+    // 询问是否配置AI代码统计 - 必须在创建配置文件之前
     this.progressManager.stop(); // 暂停进度条，准备交互
     await this.askAiStatConfig();
+    this.progressManager.nextStep();
+
+    this.progressManager.updateStep('📝 创建配置文件...');
+    await this.createConfigFiles();
     this.progressManager.nextStep();
 
     this.progressManager.updateStep('🔧 初始化Git hooks...');
@@ -522,66 +522,7 @@ class GitWorkflowInitializer {
       aiHookConfig = `
     # AI代码统计
     ai-stat:
-      run: |
-        # 检查.env文件是否存在
-        if [ ! -f .env ]; then
-          echo "❌ 缺少.env文件，请先运行 gg init 配置AI统计"
-          exit 1
-        fi
-
-        # 读取环境变量
-        export $(cat .env | grep -v '^#' | xargs)
-
-        # 校验必需的环境变量
-        if [ -z "\${AI_ORGANIZATION}" ]; then
-          echo "❌ 缺少AI_ORGANIZATION参数，请检查.env文件配置"
-          exit 1
-        fi
-
-        if [ -z "\${AI_GIT_TOKEN}" ]; then
-          echo "❌ 缺少AI_GIT_TOKEN参数，请检查.env文件配置"
-          exit 1
-        fi
-
-        # AI_PERCENTAGE是可选的，如果没有则使用随机值
-        if [ -z "\${AI_PERCENTAGE}" ]; then
-          # 生成0.3-0.9的随机数，保留2位小数
-          AI_PERCENTAGE=$(awk 'BEGIN{srand(); printf "%.2f", rand()*0.6+0.3}')
-          echo "🎲 使用随机AI代码占比: \${AI_PERCENTAGE}"
-        fi
-
-        # 计算前一天的日期（格式：YYYY-MM-DD）
-        PREVIOUS_DAY=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)
-
-        # 接口URL和参数
-        API_URL=\${API_URL:-"http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage"}
-        API_PARAMS="organization=\${AI_ORGANIZATION}&org_type=USER&percentage=\${AI_PERCENTAGE}&git_token=\${AI_GIT_TOKEN}&git=WEIBO_COM&start_time=\${PREVIOUS_DAY}"
-
-        # 完整的API请求URL
-        FULL_URL="\${API_URL}?\${API_PARAMS}"
-
-        # 调用API
-        echo "🤖 Calling AI stat API: \${FULL_URL}"
-        RESPONSE=$(curl -s -w "\\n%{http_code}" "\$FULL_URL")
-
-        # 提取HTTP状态码和响应内容
-        HTTP_CODE=$(echo "\$RESPONSE" | tail -n1)
-        RESPONSE_CONTENT=$(echo "\$RESPONSE" | head -n -1)
-
-        # 检查API响应
-        if [[ "\$HTTP_CODE" != "200" ]]; then
-            echo "❌ AI统计API请求失败，HTTP状态码: \$HTTP_CODE"
-            echo "响应: \$RESPONSE_CONTENT"
-            exit 1
-        fi
-
-        # 检查API返回内容是否成功
-        if [[ "\$RESPONSE_CONTENT" != *"success"* ]]; then
-            echo "❌ AI统计验证失败: \$RESPONSE_CONTENT"
-            exit 1
-        fi
-
-        echo "✅ AI统计验证通过"`;
+      run: node scripts/ai-stat.js`;
     }
 
     const config = `# Git规范化工作流配置
@@ -701,6 +642,128 @@ try {
     // 写入脚本文件
     await fs.writeFile(path.join(scriptsDir, 'branch-name-check.js'), branchCheckScript);
     await fs.writeFile(path.join(scriptsDir, 'protect-master.js'), protectMasterScript);
+
+    // 如果需要AI hooks，创建AI统计脚本
+    if (this.needAiHooks) {
+      const aiStatScript = `#!/usr/bin/env node
+
+// Windows兼容的AI代码统计脚本
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const http = require('http');
+
+async function callAiStatApi() {
+  try {
+    // 检查.env文件是否存在
+    const envPath = path.join(process.cwd(), '.env');
+    if (!fs.existsSync(envPath)) {
+      console.log('❌ 缺少.env文件，请先运行 gg init 配置AI统计');
+      process.exit(1);
+    }
+
+    // 读取环境变量
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const envConfig = {};
+
+    envContent.split('\\n').forEach(line => {
+      line = line.trim();
+      if (line && !line.startsWith('#')) {
+        const [key, value] = line.split('=');
+        if (key && value) {
+          envConfig[key.trim()] = value.trim();
+        }
+      }
+    });
+
+    // 校验必需的环境变量
+    if (!envConfig.AI_ORGANIZATION) {
+      console.log('❌ 缺少AI_ORGANIZATION参数，请检查.env文件配置');
+      process.exit(1);
+    }
+
+    if (!envConfig.AI_GIT_TOKEN) {
+      console.log('❌ 缺少AI_GIT_TOKEN参数，请检查.env文件配置');
+      process.exit(1);
+    }
+
+    // AI_PERCENTAGE是可选的，如果没有则使用随机值
+    let aiPercentage = envConfig.AI_PERCENTAGE;
+    if (!aiPercentage) {
+      // 生成0.3-0.9的随机数，保留2位小数
+      aiPercentage = (Math.random() * 0.6 + 0.3).toFixed(2);
+      console.log(\`🎲 使用随机AI代码占比: \${aiPercentage}\`);
+    }
+
+    // 计算前一天的日期（格式：YYYY-MM-DD）
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const previousDay = yesterday.toISOString().split('T')[0];
+
+    // 接口URL和参数
+    const apiUrl = envConfig.API_URL || 'http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage';
+    const apiParams = \`organization=\${envConfig.AI_ORGANIZATION}&org_type=USER&percentage=\${aiPercentage}&git_token=\${envConfig.AI_GIT_TOKEN}&git=WEIBO_COM&start_time=\${previousDay}\`;
+    const fullUrl = \`\${apiUrl}?\${apiParams}\`;
+
+    console.log(\`🤖 Calling AI stat API: \${fullUrl}\`);
+
+    // 调用API
+    const response = await makeRequest(fullUrl);
+
+    if (response.statusCode !== 200) {
+      console.log(\`❌ AI统计API请求失败，HTTP状态码: \${response.statusCode}\`);
+      console.log(\`响应: \${response.body}\`);
+      process.exit(1);
+    }
+
+    // 检查API返回内容是否成功
+    if (!response.body.includes('success')) {
+      console.log(\`❌ AI统计验证失败: \${response.body}\`);
+      process.exit(1);
+    }
+
+    console.log('✅ AI统计验证通过');
+
+  } catch (error) {
+    console.log(\`❌ AI统计脚本执行失败: \${error.message}\`);
+    process.exit(1);
+  }
+}
+
+function makeRequest(url) {
+  return new Promise((resolve, reject) => {
+    const protocol = url.startsWith('https:') ? https : http;
+
+    const req = protocol.get(url, (res) => {
+      let body = '';
+      res.on('data', (chunk) => {
+        body += chunk;
+      });
+      res.on('end', () => {
+        resolve({
+          statusCode: res.statusCode,
+          body: body
+        });
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    // 设置超时
+    req.setTimeout(10000, () => {
+      req.destroy();
+      reject(new Error('请求超时'));
+    });
+  });
+}
+
+// 执行AI统计
+callAiStatApi();`;
+
+      await fs.writeFile(path.join(scriptsDir, 'ai-stat.js'), aiStatScript);
+    }
   }
 
   async createVersionConfig() {

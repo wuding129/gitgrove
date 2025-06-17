@@ -111,7 +111,7 @@ program
 
 program
   .command('ai-stat')
-  .description('AI代码占比统计')
+  .description('AI代码占比统计(仅内部使用)')
   .action(async () => {
     const { AiStatManager } = require('../src/ai_stat');
     const aiStatManager = new AiStatManager();
