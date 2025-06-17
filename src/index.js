@@ -676,6 +676,13 @@ async function callAiStatApi() {
       }
     });
 
+    // 检查是否启用自动统计
+    if (envConfig.AI_STAT_AUTO !== 'true') {
+      console.log('ℹ️  AI自动统计已禁用 (AI_STAT_AUTO=false)');
+      console.log('💡 如需启用，请在.env文件中设置 AI_STAT_AUTO=true');
+      process.exit(0);
+    }
+
     // 校验必需的环境变量
     if (!envConfig.AI_ORGANIZATION) {
       console.log('❌ 缺少AI_ORGANIZATION参数，请检查.env文件配置');
@@ -1324,7 +1331,7 @@ trim_trailing_whitespace = false
     }
 
     // 询问AI代码占比（仍然每次询问）
-    const percentageAnswer = await inquirer.prompt([
+    const questions = [
       {
         type: 'input',
         name: 'percentage',
@@ -1337,12 +1344,23 @@ trim_trailing_whitespace = false
           }
           return true;
         }
+      },
+      {
+        type: 'confirm',
+        name: 'autoStat',
+        message: '是否启用AI统计自动触发？（true=git commit时自动统计，false=仅手动统计）',
+        default: false
       }
-    ]);
+    ];
 
-    if (percentageAnswer.percentage && percentageAnswer.percentage.trim()) {
-      envConfig.AI_PERCENTAGE = percentageAnswer.percentage;
+    const answers = await inquirer.prompt(questions);
+
+    if (answers.percentage && answers.percentage.trim()) {
+      envConfig.AI_PERCENTAGE = answers.percentage;
     }
+
+    // 设置AI自动统计配置
+    envConfig.AI_STAT_AUTO = answers.autoStat ? 'true' : 'false';
 
     // 写入.env文件
     await this.writeEnvFile(envConfig);
@@ -1413,14 +1431,23 @@ trim_trailing_whitespace = false
       });
     }
 
-    if (questions.length > 0) {
-      const answers = await inquirer.prompt(questions);
+    // 总是询问是否启用自动统计
+    questions.push({
+      type: 'confirm',
+      name: 'autoStat',
+      message: '是否启用AI统计自动触发？（true=git commit时自动统计，false=仅手动统计）',
+      default: false
+    });
 
-      // 更新配置
-      if (answers.organization) envConfig.AI_ORGANIZATION = answers.organization;
-      if (answers.gitToken) envConfig.AI_GIT_TOKEN = answers.gitToken;
-      if (answers.percentage && answers.percentage.trim()) envConfig.AI_PERCENTAGE = answers.percentage;
-    }
+    const answers = await inquirer.prompt(questions);
+
+    // 更新配置
+    if (answers.organization) envConfig.AI_ORGANIZATION = answers.organization;
+    if (answers.gitToken) envConfig.AI_GIT_TOKEN = answers.gitToken;
+    if (answers.percentage && answers.percentage.trim()) envConfig.AI_PERCENTAGE = answers.percentage;
+
+    // 设置AI自动统计配置
+    envConfig.AI_STAT_AUTO = answers.autoStat ? 'true' : 'false';
 
     // 设置默认值
     if (!envConfig.API_URL) {
@@ -1451,6 +1478,7 @@ trim_trailing_whitespace = false
     if (config.AI_ORGANIZATION) content += `AI_ORGANIZATION=${config.AI_ORGANIZATION}\n`;
     if (config.AI_GIT_TOKEN) content += `AI_GIT_TOKEN=${config.AI_GIT_TOKEN}\n`;
     if (config.AI_PERCENTAGE) content += `AI_PERCENTAGE=${config.AI_PERCENTAGE}\n`;
+    content += `AI_STAT_AUTO=${config.AI_STAT_AUTO || 'false'}\n`;
 
     await fs.writeFile(envPath, content);
     console.log(chalk.green('✅ .env 文件已创建/更新'));
@@ -1468,7 +1496,9 @@ trim_trailing_whitespace = false
     content += '# Git Token（在 https://git.intra.weibo.com/-/profile/personal_access_tokens 获取）\n';
     content += 'AI_GIT_TOKEN=your_git_token_here\n\n';
     content += '# AI代码占比（可选，0-1之间的数值，例如0.3表示30%。如不设置则每次使用随机值）\n';
-    content += '# AI_PERCENTAGE=0.5\n';
+    content += '# AI_PERCENTAGE=0.5\n\n';
+    content += '# 是否启用AI统计自动触发（true=提交时自动统计，false=仅手动统计）\n';
+    content += 'AI_STAT_AUTO=false\n';
 
     await fs.writeFile(envExamplePath, content);
     console.log(chalk.green('✅ .env.example 模板文件已生成'));
