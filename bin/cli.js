@@ -55,7 +55,7 @@ program
   .action(async (files) => {
     const { AddManager } = require('../src/add');
     const addManager = new AddManager();
-    
+
     if (files && files.length > 0) {
       // 直接添加指定文件
       await addManager.addDirect(files);
@@ -107,6 +107,15 @@ program
     const { ReleaseManager } = require('../src/release');
     const releaseManager = new ReleaseManager();
     await releaseManager.release(options);
+  });
+
+program
+  .command('ai-stat')
+  .description('AI代码占比统计')
+  .action(async () => {
+    const { AiStatManager } = require('../src/ai_stat');
+    const aiStatManager = new AiStatManager();
+    await aiStatManager.statistic();
   });
 
 // 默认命令，如果没有指定子命令，就执行init

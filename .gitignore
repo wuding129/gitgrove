@@ -113,3 +113,4 @@ build/
 *.backup
 .npm
 .yarn
+.env.example

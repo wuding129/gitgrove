@@ -4,12 +4,79 @@ const chalk = require('chalk');
 const ora = require('ora');
 const inquirer = require('inquirer');
 const { execSync } = require('child_process');
+const os = require('os');
+
+// 进度管理器类
+class ProgressManager {
+  constructor(steps) {
+    this.steps = steps;
+    this.currentStep = 0;
+    this.spinner = null;
+  }
+
+  start() {
+    console.log(chalk.cyan('======================================'));
+    // 在最后显示初始进度条
+    this.updateProgressBar();
+  }
+
+  updateStep(message) {
+    if (this.spinner) {
+      this.spinner.stop();
+    }
+    this.spinner = ora(message).start();
+  }
+
+  nextStep() {
+    if (this.spinner) {
+      this.spinner.succeed();
+      this.spinner = null;
+    }
+    this.currentStep++;
+    // 每次步骤完成后，在底部更新进度条
+    this.updateProgressBar();
+  }
+
+  updateProgressBar() {
+    const progressBar = '█'.repeat(Math.floor((this.currentStep / this.steps.length) * 30)) +
+                       '░'.repeat(30 - Math.floor((this.currentStep / this.steps.length) * 30));
+    const percentage = Math.floor((this.currentStep / this.steps.length) * 100);
+
+    // 在输出末尾显示进度条
+    console.log(''); // 空行分隔
+    console.log(chalk.cyan(`[${progressBar}] ${percentage}%`));
+    console.log(''); // 空行分隔
+  }
+
+  complete() {
+    if (this.spinner) {
+      this.spinner.succeed();
+      this.spinner = null;
+    }
+    // 最终进度条显示100%
+    console.log('');
+    console.log(chalk.cyan(`[████████████████████████████████] 100%`));
+    console.log('');
+  }
+
+  stop() {
+    if (this.spinner) {
+      this.spinner.stop();
+      this.spinner = null;
+    }
+  }
+}
 
 class GitWorkflowInitializer {
   constructor(options = {}) {
     this.options = options;
     this.currentDir = process.cwd();
     this.force = options.force || false; // 添加 force 选项
+    this.needAiHooks = false; // 是否需要AI hooks
+
+    // 全局配置文件路径
+    this.globalConfigDir = path.join(os.homedir(), '.gitgrove');
+    this.globalConfigPath = path.join(this.globalConfigDir, 'config.json');
 
     // 查找Git根目录和package.json目录
     const { gitRoot, packageJsonDir } = this.findProjectDirectories();
@@ -87,16 +154,31 @@ class GitWorkflowInitializer {
   }
 
   async init() {
-    console.log(chalk.cyan('🌟 Git规范化工作流一键初始化工具'));
-    console.log(chalk.cyan('======================================'));
+    console.log(chalk.blue.bold('🌟 Git规范化工作流一键初始化工具'));
+
+    // 初始化进度管理器
+    this.progressManager = new ProgressManager([
+      '📦 检查开发环境',
+      '🛠️  安装Git规范化依赖',
+      '📝 创建配置文件',
+      '⚙️  更新package.json',
+      '📝 更新.gitignore',
+      '🤖 配置AI代码统计',
+      '🔧 初始化Git hooks'
+    ]);
+
+    this.progressManager.start();
 
     // 检查环境
+    this.progressManager.updateStep('📦 检查开发环境...');
     await this.checkEnvironment();
+    this.progressManager.nextStep();
 
     // 检查是否强制覆盖
     if (!this.options.force) {
       const shouldOverwrite = await this.checkExistingConfig();
       if (!shouldOverwrite) {
+        this.progressManager.stop();
         console.log(chalk.yellow('👋 初始化已取消'));
         return;
       }
@@ -115,18 +197,35 @@ class GitWorkflowInitializer {
     }
 
     // 开始初始化
+    this.progressManager.updateStep(`🛠️  使用 ${this.packageManager} 安装Git规范化依赖...`);
     await this.installDependencies();
+    this.progressManager.nextStep();
+
+    this.progressManager.updateStep('📝 创建配置文件...');
     await this.createConfigFiles();
+    this.progressManager.nextStep();
+
+    this.progressManager.updateStep('⚙️  更新package.json...');
     await this.updatePackageJson();
+    this.progressManager.nextStep();
+
+    this.progressManager.updateStep('📝 更新.gitignore...');
     await this.updateGitignore();
+    this.progressManager.nextStep();
+
+    // 询问是否配置AI代码统计
+    this.progressManager.stop(); // 暂停进度条，准备交互
+    await this.askAiStatConfig();
+    this.progressManager.nextStep();
+
+    this.progressManager.updateStep('🔧 初始化Git hooks...');
     await this.initializeGitHooks();
+    this.progressManager.complete();
 
     this.showSuccessMessage();
   }
 
   async checkEnvironment() {
-    const spinner = ora('📦 检查开发环境...').start();
-
     try {
       // 检查Node.js
       const nodeVersion = process.version;
@@ -142,20 +241,18 @@ class GitWorkflowInitializer {
       // 检查或创建package.json
       const packageJsonPath = path.join(this.projectRoot, 'package.json');
       if (!fs.existsSync(packageJsonPath)) {
-        spinner.info('📝 未找到package.json，将为您创建一个基础的package.json文件');
+        console.log(chalk.cyan('📝 未找到package.json，将为您创建一个基础的package.json文件'));
         await this.createBasicPackageJson();
       }
 
       // 显示项目信息
       const relativePath = path.relative(this.gitRoot, this.projectRoot);
       const projectInfo = relativePath ? `子项目: ${relativePath}` : '根项目';
-      spinner.info(`📁 Git根目录: ${this.gitRoot}`);
-      spinner.info(`📦 项目目录: ${this.projectRoot} (${projectInfo})`);
+      console.log(chalk.cyan(`📁 Git根目录: ${this.gitRoot}`));
+      console.log(chalk.cyan(`📦 项目目录: ${this.projectRoot} (${projectInfo})`));
 
-      spinner.succeed('✅ 环境检查通过');
     } catch (error) {
-      spinner.fail(`❌ 环境检查失败: ${error.message}`);
-      throw error;
+      throw new Error(`环境检查失败: ${error.message}`);
     }
   }
 
@@ -237,18 +334,16 @@ class GitWorkflowInitializer {
       return;
     }
 
-    const spinner = ora(`📦 使用 ${this.packageManager} 安装Git规范化依赖...`).start();
+    const dependencies = [
+      '@commitlint/cli',
+      '@commitlint/config-conventional',
+      'commitizen',
+      'cz-customizable',
+      'lefthook',
+      'standard-version'
+    ];
 
     try {
-      const dependencies = [
-        '@commitlint/cli',
-        '@commitlint/config-conventional',
-        'commitizen',
-        'cz-customizable',
-        'lefthook',
-        'standard-version'
-      ];
-
       const installCommand = this.getInstallCommand(dependencies);
       const isWindows = process.platform === 'win32';
 
@@ -258,10 +353,8 @@ class GitWorkflowInitializer {
         shell: isWindows
       });
 
-      spinner.succeed('✅ 依赖安装完成');
     } catch (error) {
-      spinner.fail('❌ 依赖安装失败');
-      throw error;
+      throw new Error(`依赖安装失败: ${error.message}`);
     }
   }
 
@@ -281,8 +374,6 @@ class GitWorkflowInitializer {
   }
 
   async createConfigFiles() {
-    const spinner = ora('📝 创建配置文件...').start();
-
     try {
       // 创建commitlint配置
       await this.createCommitlintConfig();
@@ -296,19 +387,10 @@ class GitWorkflowInitializer {
       // 创建版本发布配置
       await this.createVersionConfig();
 
-      // 暂停spinner以避免影响交互
-      spinner.stop();
-
-      // 创建EditorConfig配置
+      // 创建EditorConfig配置（可能有交互）
       await this.createEditorConfig();
-
-      // 重新开始spinner并完成
-      const newSpinner = ora('📝 配置文件创建完成').start();
-      newSpinner.succeed('✅ 配置文件创建完成');
     } catch (error) {
-      spinner.fail('❌ 配置文件创建失败');
-      console.error('错误详情:', error);
-      throw error;
+      throw new Error(`配置文件创建失败: ${error.message}`);
     }
   }
 
@@ -433,6 +515,75 @@ class GitWorkflowInitializer {
       config
     );
   }  async createLefthookConfig() {
+    let aiHookConfig = '';
+
+    // 如果配置了AI统计，添加相应的hook
+    if (this.needAiHooks) {
+      aiHookConfig = `
+    # AI代码统计
+    ai-stat:
+      run: |
+        # 检查.env文件是否存在
+        if [ ! -f .env ]; then
+          echo "❌ 缺少.env文件，请先运行 gg init 配置AI统计"
+          exit 1
+        fi
+
+        # 读取环境变量
+        export $(cat .env | grep -v '^#' | xargs)
+
+        # 校验必需的环境变量
+        if [ -z "\${AI_ORGANIZATION}" ]; then
+          echo "❌ 缺少AI_ORGANIZATION参数，请检查.env文件配置"
+          exit 1
+        fi
+
+        if [ -z "\${AI_GIT_TOKEN}" ]; then
+          echo "❌ 缺少AI_GIT_TOKEN参数，请检查.env文件配置"
+          exit 1
+        fi
+
+        # AI_PERCENTAGE是可选的，如果没有则使用随机值
+        if [ -z "\${AI_PERCENTAGE}" ]; then
+          # 生成0.3-0.9的随机数，保留2位小数
+          AI_PERCENTAGE=$(awk 'BEGIN{srand(); printf "%.2f", rand()*0.6+0.3}')
+          echo "🎲 使用随机AI代码占比: \${AI_PERCENTAGE}"
+        fi
+
+        # 计算前一天的日期（格式：YYYY-MM-DD）
+        PREVIOUS_DAY=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null || date -v-1d +%Y-%m-%d)
+
+        # 接口URL和参数
+        API_URL=\${API_URL:-"http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage"}
+        API_PARAMS="organization=\${AI_ORGANIZATION}&org_type=USER&percentage=\${AI_PERCENTAGE}&git_token=\${AI_GIT_TOKEN}&git=WEIBO_COM&start_time=\${PREVIOUS_DAY}"
+
+        # 完整的API请求URL
+        FULL_URL="\${API_URL}?\${API_PARAMS}"
+
+        # 调用API
+        echo "🤖 Calling AI stat API: \${FULL_URL}"
+        RESPONSE=$(curl -s -w "\\n%{http_code}" "\$FULL_URL")
+
+        # 提取HTTP状态码和响应内容
+        HTTP_CODE=$(echo "\$RESPONSE" | tail -n1)
+        RESPONSE_CONTENT=$(echo "\$RESPONSE" | head -n -1)
+
+        # 检查API响应
+        if [[ "\$HTTP_CODE" != "200" ]]; then
+            echo "❌ AI统计API请求失败，HTTP状态码: \$HTTP_CODE"
+            echo "响应: \$RESPONSE_CONTENT"
+            exit 1
+        fi
+
+        # 检查API返回内容是否成功
+        if [[ "\$RESPONSE_CONTENT" != *"success"* ]]; then
+            echo "❌ AI统计验证失败: \$RESPONSE_CONTENT"
+            exit 1
+        fi
+
+        echo "✅ AI统计验证通过"`;
+    }
+
     const config = `# Git规范化工作流配置
 # 分支创建约束和提交规范验证
 
@@ -463,7 +614,7 @@ pre-commit:
         echo "🔍 检查代码格式..."
         # 这里可以添加ESLint等代码检查工具
         # npx eslint {staged_files} --fix
-        echo "✅ 代码格式检查通过"`;
+        echo "✅ 代码格式检查通过"${aiHookConfig}`;
 
     // 在 monorepo 场景下，lefthook.yml 需要放在 Git 根目录
     const lefthookConfigPath = path.join(this.gitRoot, 'lefthook.yml');
@@ -711,11 +862,31 @@ trim_trailing_whitespace = false
 .npm
 .yarn
 .pnpm-debug.log*
+
+# 环境变量文件
+.env
+.env.example
+.env.local
+.env.*.local
 `;
 
         await fs.appendFile(gitignorePath, gitIgnoreEntries);
         spinner.succeed('✅ .gitignore更新完成');
       } else {
+        // 检查是否包含.env
+        if (!gitignoreContent.includes('.env')) {
+          const envEntries = `
+# 环境变量文件
+.env
+.env.example
+.env.local
+.env.*.local
+`;
+          await fs.appendFile(gitignorePath, envEntries);
+        } else if (!gitignoreContent.includes('.env.example')) {
+          // 如果已有.env但没有.env.example，则追加
+          await fs.appendFile(gitignorePath, '.env.example\n');
+        }
         spinner.succeed('✅ .gitignore已包含Git工具配置，跳过更新');
       }
     } catch (error) {
@@ -732,6 +903,7 @@ trim_trailing_whitespace = false
       const hooksDir = path.join(this.gitRoot, '.git', 'hooks');
 
       if (fs.existsSync(hooksDir)) {
+        spinner.text = '🔧 备份现有hooks...';
         // 备份现有hooks
         const backupDir = path.join(this.gitRoot, '.git', `hooks-backup-${Date.now()}`);
         const hasExistingHooks = fs.readdirSync(hooksDir).some(file =>
@@ -742,6 +914,7 @@ trim_trailing_whitespace = false
           await fs.copy(hooksDir, backupDir);
         }
 
+        spinner.text = '🔧 清理冲突文件...';
         // 清理冲突文件
         const conflictFiles = [
           'pre-commit.old', 'commit-msg.old', 'pre-push.old',
@@ -756,6 +929,7 @@ trim_trailing_whitespace = false
         }
       }
 
+      spinner.text = '🔧 清理husky配置...';
       // 清理husky配置 - 优先在项目目录清理，然后在Git根目录清理
       const projectHuskyDir = path.join(this.projectRoot, '.husky');
       const gitHuskyDir = path.join(this.gitRoot, '.husky');
@@ -770,9 +944,11 @@ trim_trailing_whitespace = false
       // 在monorepo场景下，确保Git根目录也有lefthook可用
       const isMonorepo = this.gitRoot !== this.projectRoot;
       if (isMonorepo) {
+        spinner.text = '🔧 配置monorepo支持...';
         await this.ensureLefthookInGitRoot();
       }
 
+      spinner.text = '🔧 安装lefthook...';
       // 初始化lefthook（必须在Git根目录执行，因为配置文件在那里）
       let installSuccess = false;
       const installMethods = [
@@ -964,6 +1140,275 @@ trim_trailing_whitespace = false
     console.log(chalk.cyan('💡 极简设计: 项目中只保留一个prepare script，所有功能通过gg命令使用'));
     console.log(chalk.cyan('💡 版本发布: 使用 gg release 而非npm scripts，支持全局使用'));
     console.log(chalk.yellow('💾 备份文件: package.json.backup (如有问题可恢复)'));
+  }
+
+  /**
+   * 读取全局AI配置
+   */
+  async readGlobalAiConfig() {
+    try {
+      if (await fs.pathExists(this.globalConfigPath)) {
+        const config = await fs.readJson(this.globalConfigPath);
+        return config.aiConfig || null;
+      }
+    } catch (error) {
+      // 忽略错误，返回null
+    }
+    return null;
+  }
+
+  /**
+   * 保存全局AI配置
+   */
+  async saveGlobalAiConfig(aiConfig) {
+    try {
+      await fs.ensureDir(this.globalConfigDir);
+
+      let globalConfig = {};
+      if (await fs.pathExists(this.globalConfigPath)) {
+        globalConfig = await fs.readJson(this.globalConfigPath);
+      }
+
+      globalConfig.aiConfig = {
+        AI_ORGANIZATION: aiConfig.AI_ORGANIZATION,
+        AI_GIT_TOKEN: aiConfig.AI_GIT_TOKEN,
+        savedAt: new Date().toISOString()
+      };
+
+      await fs.writeJson(this.globalConfigPath, globalConfig, { spaces: 2 });
+      console.log(chalk.gray('✅ AI配置已保存到全局配置 ~/.gitgrove/config.json'));
+    } catch (error) {
+      console.log(chalk.yellow('⚠️  保存全局配置失败，下次仍需重新输入'));
+    }
+  }
+
+  async askAiStatConfig() {
+    // 检查是否有全局配置
+    const globalAiConfig = await this.readGlobalAiConfig();
+
+    if (globalAiConfig) {
+      console.log(chalk.cyan(`\n🔍 检测到已保存的AI配置:`));
+      console.log(chalk.gray(`   组织名: ${globalAiConfig.AI_ORGANIZATION}`));
+      console.log(chalk.gray(`   Token: ${globalAiConfig.AI_GIT_TOKEN.substring(0, 8)}...`));
+      console.log(chalk.gray(`   保存时间: ${new Date(globalAiConfig.savedAt).toLocaleString()}`));
+
+      const useGlobalAnswer = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'useGlobal',
+          message: '如何处理AI代码统计配置？',
+          choices: [
+            { name: '✅ 使用已保存的配置', value: 'use' },
+            { name: '🔄 重新配置并更新保存', value: 'update' },
+            { name: '❌ 跳过AI统计配置', value: 'skip' }
+          ],
+          default: 'use'
+        }
+      ]);
+
+      if (useGlobalAnswer.useGlobal === 'skip') {
+        return;
+      } else if (useGlobalAnswer.useGlobal === 'use') {
+        await this.setupAiStatConfigWithGlobal(globalAiConfig);
+        return;
+      }
+      // 'update' 继续执行下面的配置流程
+    }
+
+    const answer = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'enableAiStat',
+        message: '是否配置AI代码统计功能？',
+        default: false
+      }
+    ]);
+
+    if (answer.enableAiStat) {
+      await this.setupAiStatConfig();
+    }
+  }
+
+  async setupAiStatConfigWithGlobal(globalAiConfig) {
+    console.log(chalk.cyan('\n🤖 使用全局AI配置...'));
+
+    const envPath = path.join(this.projectRoot, '.env');
+    let envConfig = {};
+
+    // 读取现有的.env文件
+    if (await fs.pathExists(envPath)) {
+      const envContent = await fs.readFile(envPath, 'utf-8');
+      const lines = envContent.split('\n');
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const [key, value] = trimmed.split('=');
+          if (key && value) {
+            envConfig[key.trim()] = value.trim();
+          }
+        }
+      }
+    }
+
+    // 使用全局配置
+    envConfig.AI_ORGANIZATION = globalAiConfig.AI_ORGANIZATION;
+    envConfig.AI_GIT_TOKEN = globalAiConfig.AI_GIT_TOKEN;
+
+    // 设置默认API URL
+    if (!envConfig.API_URL) {
+      envConfig.API_URL = 'http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage';
+    }
+
+    // 询问AI代码占比（仍然每次询问）
+    const percentageAnswer = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'percentage',
+        message: '请输入AI代码占比（例如：0.3表示30%，回车跳过-每次使用随机值）:',
+        validate: (input) => {
+          if (!input.trim()) return true; // 允许空值
+          const num = parseFloat(input);
+          if (isNaN(num) || num < 0 || num > 1) {
+            return '请输入0-1之间的数值，或回车跳过使用随机值';
+          }
+          return true;
+        }
+      }
+    ]);
+
+    if (percentageAnswer.percentage && percentageAnswer.percentage.trim()) {
+      envConfig.AI_PERCENTAGE = percentageAnswer.percentage;
+    }
+
+    // 写入.env文件
+    await this.writeEnvFile(envConfig);
+
+    // 生成.env.example模板文件
+    await this.generateEnvExample();
+
+    // 标记需要AI hooks
+    this.needAiHooks = true;
+  }
+
+  async setupAiStatConfig() {
+    console.log(chalk.cyan('\n🤖 配置AI代码统计...'));
+
+    const envPath = path.join(this.projectRoot, '.env');
+    let envConfig = {};
+
+    // 读取现有的.env文件
+    if (await fs.pathExists(envPath)) {
+      const envContent = await fs.readFile(envPath, 'utf-8');
+      const lines = envContent.split('\n');
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const [key, value] = trimmed.split('=');
+          if (key && value) {
+            envConfig[key.trim()] = value.trim();
+          }
+        }
+      }
+    }
+
+    // 交互获取配置
+    const questions = [];
+
+    if (!envConfig.AI_ORGANIZATION) {
+      questions.push({
+        type: 'input',
+        name: 'organization',
+        message: '请输入组织名（邮箱前缀）:',
+        validate: (input) => input.trim() ? true : '组织名不能为空'
+      });
+    }
+
+    if (!envConfig.AI_GIT_TOKEN) {
+      questions.push({
+        type: 'input',
+        name: 'gitToken',
+        message: '请输入Git Token（在 https://git.intra.weibo.com/-/profile/personal_access_tokens 获取）:',
+        validate: (input) => input.trim() ? true : 'Git Token不能为空'
+      });
+    }
+
+    if (!envConfig.AI_PERCENTAGE) {
+      questions.push({
+        type: 'input',
+        name: 'percentage',
+        message: '请输入AI代码占比（例如：0.3表示30%，回车跳过-每次使用随机值）:',
+        validate: (input) => {
+          if (!input.trim()) return true; // 允许空值
+          const num = parseFloat(input);
+          if (isNaN(num) || num < 0 || num > 1) {
+            return '请输入0-1之间的数值，或回车跳过使用随机值';
+          }
+          return true;
+        }
+      });
+    }
+
+    if (questions.length > 0) {
+      const answers = await inquirer.prompt(questions);
+
+      // 更新配置
+      if (answers.organization) envConfig.AI_ORGANIZATION = answers.organization;
+      if (answers.gitToken) envConfig.AI_GIT_TOKEN = answers.gitToken;
+      if (answers.percentage && answers.percentage.trim()) envConfig.AI_PERCENTAGE = answers.percentage;
+    }
+
+    // 设置默认值
+    if (!envConfig.API_URL) {
+      envConfig.API_URL = 'http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage';
+    }
+
+    // 写入.env文件
+    await this.writeEnvFile(envConfig);
+
+    // 生成.env.example模板文件
+    await this.generateEnvExample();
+
+    // 保存到全局配置（如果有组织名和token）
+    if (envConfig.AI_ORGANIZATION && envConfig.AI_GIT_TOKEN) {
+      await this.saveGlobalAiConfig(envConfig);
+    }
+
+    // 标记需要AI hooks
+    this.needAiHooks = true;
+  }
+
+  async writeEnvFile(config) {
+    const envPath = path.join(this.projectRoot, '.env');
+    let content = '';
+
+    content += '# AI代码统计配置\n';
+    content += `API_URL=${config.API_URL}\n`;
+    if (config.AI_ORGANIZATION) content += `AI_ORGANIZATION=${config.AI_ORGANIZATION}\n`;
+    if (config.AI_GIT_TOKEN) content += `AI_GIT_TOKEN=${config.AI_GIT_TOKEN}\n`;
+    if (config.AI_PERCENTAGE) content += `AI_PERCENTAGE=${config.AI_PERCENTAGE}\n`;
+
+    await fs.writeFile(envPath, content);
+    console.log(chalk.green('✅ .env 文件已创建/更新'));
+  }
+
+  async generateEnvExample() {
+    const envExamplePath = path.join(this.projectRoot, '.env.example');
+
+    let content = '# AI代码统计配置示例文件\n';
+    content += '# 复制此文件为 .env 并填入真实配置值\n\n';
+    content += '# API服务地址\n';
+    content += 'API_URL=http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage\n\n';
+    content += '# 组织名（邮箱前缀）\n';
+    content += 'AI_ORGANIZATION=your_username\n\n';
+    content += '# Git Token（在 https://git.intra.weibo.com/-/profile/personal_access_tokens 获取）\n';
+    content += 'AI_GIT_TOKEN=your_git_token_here\n\n';
+    content += '# AI代码占比（可选，0-1之间的数值，例如0.3表示30%。如不设置则每次使用随机值）\n';
+    content += '# AI_PERCENTAGE=0.5\n';
+
+    await fs.writeFile(envExamplePath, content);
+    console.log(chalk.green('✅ .env.example 模板文件已生成'));
   }
 }
 
