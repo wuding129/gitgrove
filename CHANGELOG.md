@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+### [1.2.2](https://github.com/wuding129/gitgrove/compare/v1.2.1...v1.2.2) (2025-06-17)
+
+
+### ✨ 新功能
+
+* 加入AI生成统计命令 ([9bfe8d0](https://github.com/wuding129/gitgrove/commit/9bfe8d0fa36a2d335f58831e5fa801ddc7401ede))
+
 ### [1.2.1](https://github.com/wuding129/gitgrove/compare/v1.2.0...v1.2.1) (2025-06-17)
 
 
