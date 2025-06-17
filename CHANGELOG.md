@@ -3,6 +3,13 @@
 自动生成的版本历史记录。
 
 
+### [1.2.1](https://github.com/wuding129/gitgrove/compare/v1.2.0...v1.2.1) (2025-06-17)
+
+
+### ✨ 新功能
+
+* 增加editorconfig配置文件 ([5832898](https://github.com/wuding129/gitgrove/commit/58328989fcb0427c055c347c75e638f0b0d25e84))
+
 ## [1.2.0](https://github.com/wuding129/gitgrove/compare/v1.1.9...v1.2.0) (2025-06-09)
 
 
