@@ -3,6 +3,14 @@
 自动生成的版本历史记录。
 
 
+### [1.2.5](https://github.com/wuding129/gitgrove/compare/v1.2.4...v1.2.5) (2025-06-18)
+
+
+### 🐛 问题修复
+
+* 修复配置问题 ([dee04c4](https://github.com/wuding129/gitgrove/commit/dee04c405acd6c91aa0acbea2488b09281c29d79))
+* 修正初始化卡住的bug和配置文件内容 ([104d62a](https://github.com/wuding129/gitgrove/commit/104d62a527f73bf33b0276acede2f047799bd8c5))
+
 ### [1.2.4](https://github.com/wuding129/gitgrove/compare/v1.2.3...v1.2.4) (2025-06-17)
 
 
