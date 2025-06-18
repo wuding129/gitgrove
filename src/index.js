@@ -814,6 +814,9 @@ callAiStatApi();`;
 
     // 如果文件存在且不是强制模式，询问用户是否覆盖
     if (exists && !this.force) {
+      // 停止进度条，进行交互
+      this.progressManager.stop();
+
       const answer = await inquirer.prompt([
         {
           type: 'confirm',
@@ -823,6 +826,9 @@ callAiStatApi();`;
         }
       ]);
 
+      // 恢复进度条
+      this.progressManager.updateStep('📝 创建配置文件...');
+
       if (!answer.overwrite) {
         console.log('ℹ️  保留现有的 .editorconfig 文件');
         return; // 用户选择不覆盖，直接返回
@@ -830,18 +836,22 @@ callAiStatApi();`;
     }
 
     // EditorConfig配置内容
-    const config = `root = true
+    const config = `# EditorConfig配置文件
+# 统一代码编辑器的编码风格
+# 更多信息请访问: https://editorconfig.org
 
-[*]
-charset = utf-8
-indent_style = space
-indent_size = 2
-end_of_line = lf
-trim_trailing_whitespace = true
-insert_final_newline = true
+root = true  # 指定这是项目的根目录下的EditorConfig文件，编辑器应停止在父目录中查找.editorconfig文件
 
-[*.md]
-trim_trailing_whitespace = false
+[*]  # 以下设置适用于所有文件
+charset = utf-8  # 设置字符编码为UTF-8
+indent_style = space  # 使用空格而不是制表符进行缩进
+indent_size = 2  # 缩进大小为2个空格
+end_of_line = lf  # 使用LF（Line Feed，Unix风格）作为行尾字符
+trim_trailing_whitespace = true  # 保存文件时删除行尾的空白字符
+insert_final_newline = true  # 确保文件保存时以换行符结尾
+
+[*.md]  # 以下设置适用于所有Markdown文件
+trim_trailing_whitespace = false  # 对于Markdown文件，不删除行尾空白字符（因为在Markdown中行尾空格有特殊含义）
 `;
 
     await fs.writeFile(editorconfigPath, config);
