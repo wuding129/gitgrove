@@ -933,9 +933,8 @@ trim_trailing_whitespace = false
 .yarn
 .pnpm-debug.log*
 
-# 环境变量文件
+# 环境变量文件（.env.example应该被提交，作为配置模板）
 .env
-.env.example
 .env.local
 .env.*.local
 `;
@@ -946,16 +945,12 @@ trim_trailing_whitespace = false
         // 检查是否包含.env
         if (!gitignoreContent.includes('.env')) {
           const envEntries = `
-# 环境变量文件
+# 环境变量文件（.env.example应该被提交，作为配置模板）
 .env
-.env.example
 .env.local
 .env.*.local
 `;
           await fs.appendFile(gitignorePath, envEntries);
-        } else if (!gitignoreContent.includes('.env.example')) {
-          // 如果已有.env但没有.env.example，则追加
-          await fs.appendFile(gitignorePath, '.env.example\n');
         }
         spinner.succeed('✅ .gitignore已包含Git工具配置，跳过更新');
       }

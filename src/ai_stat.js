@@ -13,6 +13,28 @@ class AiStatManager {
   async statistic() {
     console.log(chalk.blue('🤖 AI代码占比统计(仅内部使用)\n'));
 
+    // 检查.env文件是否存在
+    if (!await fs.pathExists(this.envPath)) {
+      console.error(chalk.red('❌ 未找到 .env 配置文件'));
+      console.error(chalk.yellow('\n🔧 解决方案：'));
+      console.error(chalk.cyan('   1. 运行 gg init 进行完整配置'));
+      console.error(chalk.cyan('   2. 或手动创建 .env 文件'));
+
+      // 检查是否存在 .env.example 文件
+      const envExamplePath = path.join(this.projectRoot, '.env.example');
+      if (await fs.pathExists(envExamplePath)) {
+        console.error(chalk.gray('\n📄 可参考当前目录下的 .env.example 模板文件'));
+        console.error(chalk.gray('   复制并重命名为 .env，然后填入真实配置值'));
+      } else {
+        console.error(chalk.gray('\n📄 .env 文件应包含以下配置：'));
+        console.error(chalk.gray('   API_URL=http://k3sservice.qa.intra.weibo.com:48650/wecode/thirdparty_ai_percentage'));
+        console.error(chalk.gray('   AI_ORGANIZATION=your_username'));
+        console.error(chalk.gray('   AI_GIT_TOKEN=your_token'));
+        console.error(chalk.gray('   AI_STAT_AUTO=false'));
+      }
+      process.exit(1);
+    }
+
     // 读取环境变量
     const envConfig = await this.readEnvConfig();
 
@@ -24,8 +46,8 @@ class AiStatManager {
       validationResult.missingParams.forEach(param => {
         console.error(chalk.yellow(`  - ${param}`));
       });
-      console.error(chalk.cyan('\n💡 请先运行 gg init 配置AI统计，或手动创建 .env 文件并填入必要参数'));
-      console.error(chalk.gray('参考 .env.example 模板文件'));
+      console.error(chalk.cyan('\n💡 请检查 .env 文件并补充缺失的参数'));
+      console.error(chalk.gray('或运行 gg init 重新配置'));
       process.exit(1);
     }
 
